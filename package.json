@@ -3,29 +3,10 @@
   "version": "0.1.0",
   "description": "Phoenix Live Components for Elixir WebRTC",
   "main": "./assets/index.js",
-  "files": [
-    "README.md",
-    "LICENSE.md",
-    "package.json",
-    "assets/*"
-  ],
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "git://github.com/elixir-webrtc/live_ex_webrtc.git"
   },
-  "keywords": [
-    "webrtc",
-    "elixir",
-    "phoenix",
-    "liveview"
-  ],
-  "author": "",
   "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/elixir-webrtc/live_ex_webrtc/issues"
-  },
-  "homepage": "https://github.com/elixir-webrtc/live_ex_webrtc#readme"
+  "homepage": "https://github.com/elixir-webrtc/live_ex_webrtc"
 }
