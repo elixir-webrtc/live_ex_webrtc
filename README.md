@@ -17,10 +17,10 @@ end
 1. Add LiveExWebRTCPlayer hook to the list of your Phoenix Live View hooks:
 
 ```js
-import { LiveExWebRTCPlayer } from 'live_ex_webrtc';
+import { LiveExWebRTCPlayer } from "live_ex_webrtc";
 let Hooks = {};
 Hooks.LiveExWebRTCPlayer = LiveExWebRTCPlayer;
-let liveSocket = new LiveSocket('live', Socket, { hooks: Hooks} );
+let liveSocket = new LiveSocket("live", Socket, { hooks: Hooks });
 ```
 
 2. Use LiveExWebRTC.Player component in your LiveView:
@@ -51,3 +51,27 @@ defmodule MyLiveView do
   end
 end
 ```
+
+## Local development
+
+For local development, include `live_ex_webrtc` in your `mix.exs` via `path` and modify
+`NODE_PATH` env variable in your esbuild configuration, which is located in `config.exs`.
+
+For example:
+
+```elixir
+config :esbuild,
+  # ...
+  default: [
+    # ...
+    env: %{
+      "NODE_PATH" => "#{Path.expand("../deps", __DIR__)}:/path/to/parent/dir/of/live_ex_webrtc"
+    }
+  ]
+```
+
+> [!IMPORTANT]
+> Separate paths with `:` on MacOS/Linux and with `;` on Windows.
+
+> [!IMPORTANT]
+> Specify path to live_ex_webrtc's parent directory.
