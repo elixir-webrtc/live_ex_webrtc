@@ -5,20 +5,25 @@ defmodule LiveExWebRTC.Player do
 
   def render(assigns) do
     ~H"""
-    <video id={@id} phx-hook="Player" controls autoplay muted></video>
+    <video id={@id} phx-hook="LiveExWebRTCPlayer" controls autoplay muted></video>
     """
   end
 
   def handle_event("offer", unsigned_params, socket) do
     offer = SessionDescription.from_json(unsigned_params)
     {:ok, pc} = spawn_peer_connection(socket)
-    send(self(), {:pc, pc})
 
     :ok = PeerConnection.set_remote_description(pc, offer)
 
     stream_id = MediaStreamTrack.generate_stream_id()
-    {:ok, _sender} = PeerConnection.add_track(pc, MediaStreamTrack.new(:audio, [stream_id]))
-    {:ok, _sender} = PeerConnection.add_track(pc, MediaStreamTrack.new(:video, [stream_id]))
+    audio_track = MediaStreamTrack.new(:audio, [stream_id])
+    video_track = MediaStreamTrack.new(:video, [stream_id])
+    {:ok, _sender} = PeerConnection.add_track(pc, audio_track)
+    {:ok, _sender} = PeerConnection.add_track(pc, video_track)
+
+    send(self(), {:pc, pc})
+    send(self(), {:audio_track_id, audio_track.id})
+    send(self(), {:video_track_id, video_track.id})
 
     {:ok, answer} = PeerConnection.create_answer(pc)
     :ok = PeerConnection.set_local_description(pc, answer)
