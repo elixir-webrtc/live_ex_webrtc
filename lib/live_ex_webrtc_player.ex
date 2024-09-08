@@ -25,8 +25,6 @@ defmodule LiveExWebRTC.Player do
     :ok = gather_candidates(pc)
     answer = PeerConnection.get_local_description(pc)
 
-    # :ok = Forwarder.connect_output(pc)
-
     socket = assign(socket, :pc, pc)
 
     socket = push_event(socket, "answer", SessionDescription.to_json(answer))
@@ -61,4 +59,3 @@ defmodule LiveExWebRTC.Player do
     end
   end
 end
-
