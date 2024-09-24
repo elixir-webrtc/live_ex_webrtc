@@ -21,9 +21,8 @@ defmodule LiveExWebRTC.Player do
     {:ok, _sender} = PeerConnection.add_track(pc, audio_track)
     {:ok, _sender} = PeerConnection.add_track(pc, video_track)
 
-    send(self(), {:pc, pc})
-    send(self(), {:audio_track_id, audio_track.id})
-    send(self(), {:video_track_id, video_track.id})
+    info = %{pc: pc, audio_track_id: audio_track.id, video_track_id: video_track.id}
+    send(self(), {:live_ex_webrtc, :init, info})
 
     {:ok, answer} = PeerConnection.create_answer(pc)
     :ok = PeerConnection.set_local_description(pc, answer)
@@ -31,8 +30,7 @@ defmodule LiveExWebRTC.Player do
     answer = PeerConnection.get_local_description(pc)
 
     socket = assign(socket, :pc, pc)
-
-    socket = push_event(socket, "answer", SessionDescription.to_json(answer))
+    socket = push_event(socket, "answer-#{socket.assigns.id}", SessionDescription.to_json(answer))
 
     {:noreply, socket}
   end

@@ -1,17 +1,17 @@
 export const LiveExWebRTCPlayer = {
   async mounted() {
-    const pc = new RTCPeerConnection();
-    pc.ontrack = (ev) => (this.el.srcObject = ev.streams[0]);
-    pc.addTransceiver("audio", { direction: "recvonly" });
-    pc.addTransceiver("video", { direction: "recvonly" });
+    this.pc = new RTCPeerConnection();
+    this.pc.ontrack = (ev) => (this.el.srcObject = ev.streams[0]);
+    this.pc.addTransceiver("audio", { direction: "recvonly" });
+    this.pc.addTransceiver("video", { direction: "recvonly" });
 
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
+    const offer = await this.pc.createOffer();
+    await this.pc.setLocalDescription(offer);
 
-    this.handleEvent(
-      "answer",
-      async (answer) => await pc.setRemoteDescription(answer)
-    );
+    const eventName = "answer" + "-" + this.el.id;
+    this.handleEvent(eventName, async (answer) => {
+      await this.pc.setRemoteDescription(answer);
+    });
 
     this.pushEventTo(this.el, "offer", offer);
   },
