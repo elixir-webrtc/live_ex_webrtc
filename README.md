@@ -54,21 +54,35 @@ end
 
 ## Local development
 
-For local development, include `live_ex_webrtc` in your `mix.exs` via `path` and modify
-`NODE_PATH` env variable in your esbuild configuration, which is located in `config.exs`.
+For local development:
+* include `live_ex_webrtc` in your `mix.exs` via `path` 
+* modify `NODE_PATH` env variable in your esbuild configuration, which is located in `config.exs` - this will allow for importing javascript hooks from `live_ex_webrtc`.
 
-For example:
+  For example:
 
-```elixir
-config :esbuild,
-  # ...
-  default: [
+  ```elixir
+  config :esbuild,
     # ...
-    env: %{
-      "NODE_PATH" => "#{Path.expand("../deps", __DIR__)}:/path/to/parent/dir/of/live_ex_webrtc"
-    }
-  ]
-```
+    default: [
+      # ...
+      env: %{
+        "NODE_PATH" => "#{Path.expand("../deps", __DIR__)}:/path/to/parent/dir/of/live_ex_webrtc"
+      }
+    ]
+  ```
+
+* modify `content` in `tailwind.config.js` - this will compile tailwind classes used in live components.
+  
+  For example:
+
+  ```js
+  module.exports = {
+    content: [
+      // ...
+      "../deps/**/*.ex"
+    ]
+  }
+  ```
 
 > [!IMPORTANT]
 > Separate paths with `:` on MacOS/Linux and with `;` on Windows.

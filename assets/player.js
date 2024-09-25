@@ -1,7 +1,10 @@
 export const LiveExWebRTCPlayer = {
   async mounted() {
     this.pc = new RTCPeerConnection();
-    this.pc.ontrack = (ev) => (this.el.srcObject = ev.streams[0]);
+    this.pc.ontrack = (ev) => {
+      console.log("ontrack");
+      this.el.srcObject = ev.streams[0];
+    };
     this.pc.addTransceiver("audio", { direction: "recvonly" });
     this.pc.addTransceiver("video", { direction: "recvonly" });
 
