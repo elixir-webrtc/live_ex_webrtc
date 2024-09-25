@@ -1,27 +1,24 @@
 export const LiveExWebRTCPublisher = {
   async mounted() {
-    console.log("mounted");
     const view = this;
 
-    const mediaConstraints = {
-      video: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        frameRate: { ideal: 24 },
-      },
-      audio: true,
-    };
-
-    this.button = document.getElementById("button");
+    this.audioDevices = document.getElementById("audioDevices");
+    this.videoDevices = document.getElementById("videoDevices");
 
     this.echoCancellation = document.getElementById("echoCancellation");
     this.autoGainControl = document.getElementById("autoGainControl");
     this.noiseSuppression = document.getElementById("noiseSuppression");
 
-    this.audioDevices = document.getElementById("audioDevices");
-    this.videoDevices = document.getElementById("videoDevices");
+    this.width = document.getElementById("width");
+    this.height = document.getElementById("height");
+    this.fps = document.getElementById("fps");
+    this.bitrate = document.getElementById("bitrate");
 
     this.previewPlayer = document.getElementById("previewPlayer");
+
+    this.audioApplyButton = document.getElementById("audioApplyButton");
+    this.videoApplyButton = document.getElementById("videoApplyButton");
+    this.button = document.getElementById("button");
 
     this.audioDevices.onchange = function () {
       view.setupStream(view);
@@ -31,27 +28,40 @@ export const LiveExWebRTCPublisher = {
       view.setupStream(view);
     };
 
+    this.audioApplyButton.onclick = function () {
+      view.setupStream(view);
+    };
+
+    this.videoApplyButton.onclick = function () {
+      view.setupStream(view);
+    };
+
     this.button.onclick = function () {
       view.startStreaming(view);
     };
 
-    // ask for permissions
-    this.localStream = await navigator.mediaDevices.getUserMedia(
-      mediaConstraints
-    );
+    await this.findDevices(this);
+  },
 
-    console.log(`Obtained stream with id: ${this.localStream.id}`);
+  async findDevices(view) {
+    // ask for permissions
+    view.localStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+
+    console.log(`Obtained stream with id: ${view.localStream.id}`);
 
     // enumerate devices
     const devices = await navigator.mediaDevices.enumerateDevices();
     devices.forEach((device) => {
       if (device.kind === "videoinput") {
-        this.videoDevices.options[videoDevices.options.length] = new Option(
+        view.videoDevices.options[videoDevices.options.length] = new Option(
           device.label,
           device.deviceId
         );
       } else if (device.kind === "audioinput") {
-        this.audioDevices.options[audioDevices.options.length] = new Option(
+        view.audioDevices.options[audioDevices.options.length] = new Option(
           device.label,
           device.deviceId
         );
@@ -60,10 +70,10 @@ export const LiveExWebRTCPublisher = {
 
     // for some reasons, firefox loses labels after closing the stream
     // so we close it after filling audio/video devices selects
-    this.closeStream(view);
+    view.closeStream(view);
 
     // setup preview
-    await this.setupStream(view);
+    await view.setupStream(view);
   },
 
   closeStream(view) {
@@ -89,8 +99,9 @@ export const LiveExWebRTCPublisher = {
     view.localStream = await navigator.mediaDevices.getUserMedia({
       video: {
         deviceId: { exact: videoDevice },
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
+        width: view.width.value,
+        height: view.height.value,
+        frameRate: view.fps.value,
       },
       audio: {
         deviceId: { exact: audioDevice },
@@ -110,12 +121,21 @@ export const LiveExWebRTCPublisher = {
     view.pc.addTrack(view.localStream.getAudioTracks()[0], view.localStream);
     view.pc.addTrack(view.localStream.getVideoTracks()[0], view.localStream);
 
+    // set max bitrate
+    view.pc
+      .getSenders()
+      .filter((sender) => sender.track.kind === "video")
+      .forEach(async (sender) => {
+        const params = sender.getParameters();
+        params.encodings[0].maxBitrate = view.bitrate.value * 1024;
+        await sender.setParameters(params);
+      });
+
     const offer = await view.pc.createOffer();
     await view.pc.setLocalDescription(offer);
 
     const eventName = "answer" + "-" + view.el.id;
     view.handleEvent(eventName, async (answer) => {
-      console.log("got answer");
       await view.pc.setRemoteDescription(answer);
     });
 

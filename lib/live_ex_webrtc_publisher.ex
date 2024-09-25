@@ -44,7 +44,52 @@ defmodule LiveExWebRTC.Publisher do
               <input type="checkbox" id="noiseSuppression" class="rounded-full" checked />
             </div>
           </div>
+          <button id="audioApplyButton" class="rounded-lg bg-brand px-10 py-2.5 hover:bg-brand/90 text-white font-bold">Apply</button>
         </details>
+        <details>
+          <summary class="font-bold text-[#0d0d0d] py-2.5">Video Settings</summary>
+          <div class="text-[#606060] flex flex-col gap-6 py-2.5">
+            <div id="resolution" class="flex gap-2.5 items-center">
+              <label for="width">Width</label>
+              <input
+                type="text"
+                id="width"
+                value="1280"
+                class="rounded-lg focus:border-brand focus:outline-none focus:ring-0"
+              />
+              <label for="height">Height</label>
+              <input
+                type="text"
+                id="height"
+                value="720"
+                class="rounded-lg focus:border-brand focus:outline-none focus:ring-0"
+              />
+            </div>
+            <div class="flex gap-2.5 items-center">
+              <label for="fps">FPS</label>
+              <input
+                type="text"
+                id="fps"
+                value="24"
+                class="rounded-lg focus:border-brand focus:outline-none focus:ring-0"
+              />
+            </div>
+            <div class="flex gap-2.5 items-center">
+              <label for="bitrate">Max Bitrate (kbps)</label>
+              <input
+                type="text"
+                id="bitrate"
+                value="1500"
+                class="rounded-lg focus:border-brand focus:outline-none focus:ring-0"
+              />
+            </div>
+          </div>
+          <button id="videoApplyButton" class="rounded-lg bg-brand px-10 py-2.5 hover:bg-brand/90 text-white font-bold">Apply</button>
+        </details>
+        <div id="videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 py-2.5">
+          <video id="previewPlayer" class="m-auto rounded-lg bg-black h-full" autoplay controls muted>
+          </video>
+        </div>
         <div class="py-2.5">
           <button
             id="button"
@@ -52,10 +97,6 @@ defmodule LiveExWebRTC.Publisher do
           >
             Start streaming
           </button>
-        </div>
-        <div id="videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 py-2.5">
-          <video id="previewPlayer" class="m-auto rounded-lg bg-black h-full" autoplay controls muted>
-          </video>
         </div>
       </div>
     </div>
