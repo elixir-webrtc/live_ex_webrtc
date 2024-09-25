@@ -14,10 +14,6 @@ export const LiveExWebRTCPublisher = {
 
     this.button = document.getElementById("button");
 
-    this.highVideoBitrate = document.getElementById("highVideoBitrate");
-    this.mediumVideoBitrate = document.getElementById("mediumVideoBitrate");
-    this.lowVideoBitrate = document.getElementById("lowVideoBitrate");
-
     this.echoCancellation = document.getElementById("echoCancellation");
     this.autoGainControl = document.getElementById("autoGainControl");
     this.noiseSuppression = document.getElementById("noiseSuppression");
@@ -68,9 +64,6 @@ export const LiveExWebRTCPublisher = {
 
     // setup preview
     await this.setupStream(view);
-
-    // bind buttons
-    // bindControls();
   },
 
   closeStream(view) {
@@ -115,29 +108,7 @@ export const LiveExWebRTCPublisher = {
   async startStreaming(view) {
     view.pc = new RTCPeerConnection();
     view.pc.addTrack(view.localStream.getAudioTracks()[0], view.localStream);
-    view.pc.addTransceiver(view.localStream.getVideoTracks()[0], {
-      streams: [view.localStream],
-      sendEncodings: [
-        { rid: "h", maxBitrate: 1500 * 1024 },
-        { rid: "m", scaleResolutionDownBy: 2, maxBitrate: 600 * 1024 },
-        { rid: "l", scaleResolutionDownBy: 4, maxBitrate: 300 * 1024 },
-      ],
-    });
-
-    // limit max bitrate
-    view.pc
-      .getSenders()
-      .filter((sender) => sender.track.kind === "video")
-      .forEach(async (sender) => {
-        const params = sender.getParameters();
-        params.encodings.find((e) => e.rid === "h").maxBitrate =
-          parseInt(view.highVideoBitrate.value) * 1024;
-        params.encodings.find((e) => e.rid === "m").maxBitrate =
-          parseInt(view.mediumVideoBitrate.value) * 1024;
-        params.encodings.find((e) => e.rid === "l").maxBitrate =
-          parseInt(view.lowVideoBitrate.value) * 1024;
-        await sender.setParameters(params);
-      });
+    view.pc.addTrack(view.localStream.getVideoTracks()[0], view.localStream);
 
     const offer = await view.pc.createOffer();
     await view.pc.setLocalDescription(offer);

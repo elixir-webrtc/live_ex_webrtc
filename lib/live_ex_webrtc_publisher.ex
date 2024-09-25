@@ -45,41 +45,6 @@ defmodule LiveExWebRTC.Publisher do
             </div>
           </div>
         </details>
-        <details>
-          <summary class="font-bold text-[#0d0d0d] py-2.5">Video Settings</summary>
-          <div class="text-[#606060] flex flex-col gap-6 py-2.5">
-            <p class="font-medium">Max bitrate (kbps)</p>
-            <div class="flex gap-6 flex-wrap">
-              <div class="flex gap-2.5 items-center">
-                <label for="highVideoBitrate" class="font-medium">High</label>
-                <input
-                  type="text"
-                  id="highVideoBitrate"
-                  value="1500"
-                  class="rounded-lg focus:border-brand focus:outline-none focus:ring-0"
-                />
-              </div>
-              <div class="flex gap-2.5 items-center">
-                <label for="mediumVideoBitrate" class="font-medium">Medium</label>
-                <input
-                  type="text"
-                  id="mediumVideoBitrate"
-                  value="600"
-                  class="rounded-lg focus:border-brand focus:outline-none focus:ring-0"
-                />
-              </div>
-              <div class="flex gap-2.5 items-center">
-                <label for="lowVideoBitrate" class="font-medium">Low</label>
-                <input
-                  type="text"
-                  id="lowVideoBitrate"
-                  value="200"
-                  class="rounded-lg focus:border-brand focus:outline-none focus:ring-0"
-                />
-              </div>
-            </div>
-          </div>
-        </details>
         <div class="py-2.5">
           <button
             id="button"
@@ -98,7 +63,6 @@ defmodule LiveExWebRTC.Publisher do
   end
 
   def handle_event("offer", unsigned_params, socket) do
-    dbg(socket.assigns)
     offer = SessionDescription.from_json(unsigned_params)
     {:ok, pc} = spawn_peer_connection(socket)
 
@@ -110,7 +74,7 @@ defmodule LiveExWebRTC.Publisher do
     ] = PeerConnection.get_transceivers(pc)
 
     info = %{pc: pc, audio_track_id: audio_track.id, video_track_id: video_track.id}
-    send(self(), {:live_ex_webrtc, :init, info})
+    send(self(), {:live_ex_webrtc, info})
 
     {:ok, answer} = PeerConnection.create_answer(pc)
     :ok = PeerConnection.set_local_description(pc, answer)
