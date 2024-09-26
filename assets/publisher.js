@@ -41,6 +41,48 @@ export const LiveExWebRTCPublisher = {
     };
 
     await this.findDevices(this);
+
+    // setup preview using default audio and video
+    await view.setupStream(view);
+
+    // handle remote events
+    view.handleEvent(`answer-${view.el.id}`, async (answer) => {
+      if (view.pc !== undefined) {
+        await view.pc.setRemoteDescription(answer);
+      } else {
+        console.warn("Received SDP cnswer but there is no PC. Ignoring.");
+      }
+    });
+
+    view.handleEvent(`ice-${view.el.id}`, async (cand) => {
+      if (view.pc !== undefined) {
+        await view.pc.addIceCandidate(JSON.parse(cand));
+      } else {
+        console.warn("Received ICE candidate but there is no PC. Ignoring.");
+      }
+    });
+  },
+
+  disableControls(view) {
+    view.audioDevices.setAttribute("disabled", "disabled");
+    view.videoDevices.setAttribute("disabled", "disabled");
+    view.echoCancellation.setAttribute("disabled", "disabled");
+    view.autoGainControl.setAttribute("disabled", "disabled");
+    view.noiseSuppression.setAttribute("disabled", "disabled");
+    view.width.setAttribute("disabled", "disabled");
+    view.height.setAttribute("disabled", "disabled");
+    view.fps.setAttribute("disabled", "disabled");
+  },
+
+  enableControls(view) {
+    view.audioDevices.removeAttribute("disabled");
+    view.videoDevices.removeAttribute("disabled");
+    view.echoCancellation.removeAttribute("disabled");
+    view.autoGainControl.removeAttribute("disabled");
+    view.noiseSuppression.removeAttribute("disabled");
+    view.width.removeAttribute("disabled");
+    view.height.removeAttribute("disabled");
+    view.fps.removeAttribute("disabled");
   },
 
   async findDevices(view) {
@@ -71,9 +113,6 @@ export const LiveExWebRTCPublisher = {
     // for some reasons, firefox loses labels after closing the stream
     // so we close it after filling audio/video devices selects
     view.closeStream(view);
-
-    // setup preview
-    await view.setupStream(view);
   },
 
   closeStream(view) {
@@ -117,7 +156,20 @@ export const LiveExWebRTCPublisher = {
   },
 
   async startStreaming(view) {
+    view.button.innerText = "Stop streaming";
+    view.button.onclick = function () {
+      view.stopStreaming(view);
+    };
+
+    view.disableControls(view);
+
     view.pc = new RTCPeerConnection();
+
+    // handle local events
+    view.pc.onicecandidate = (ev) => {
+      view.pushEventTo(view.el, "ice", JSON.stringify(ev.candidate));
+    };
+
     view.pc.addTrack(view.localStream.getAudioTracks()[0], view.localStream);
     view.pc.addTrack(view.localStream.getVideoTracks()[0], view.localStream);
 
@@ -134,11 +186,20 @@ export const LiveExWebRTCPublisher = {
     const offer = await view.pc.createOffer();
     await view.pc.setLocalDescription(offer);
 
-    const eventName = "answer" + "-" + view.el.id;
-    view.handleEvent(eventName, async (answer) => {
-      await view.pc.setRemoteDescription(answer);
-    });
-
     view.pushEventTo(view.el, "offer", offer);
+  },
+
+  stopStreaming(view) {
+    view.button.innerText = "Start Streaming";
+    view.button.onclick = function () {
+      view.startStreaming(view);
+    };
+
+    if (view.pc) {
+      view.pc.close();
+      view.pc = undefined;
+    }
+
+    view.enableControls(view);
   },
 };

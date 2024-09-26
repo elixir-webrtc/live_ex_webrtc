@@ -103,6 +103,10 @@ defmodule LiveExWebRTC.Publisher do
     """
   end
 
+  def handle_event(_event, _unsigned_params, %{assigns: %{pc: nil}} = socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("offer", unsigned_params, socket) do
     offer = SessionDescription.from_json(unsigned_params)
     {:ok, pc} = spawn_peer_connection(socket)
@@ -128,6 +132,22 @@ defmodule LiveExWebRTC.Publisher do
     {:noreply, socket}
   end
 
+  def handle_event("ice", "null", socket) do
+    :ok = PeerConnection.add_ice_candidate(socket.assigns.pc, %{candidate: ""})
+    {:noreply, socket}
+  end
+
+  def handle_event("ice", unsigned_params, socket) do
+    cand =
+      unsigned_params
+      |> Jason.decode!()
+      |> ExWebRTC.ICECandidate.from_json()
+
+    :ok = PeerConnection.add_ice_candidate(socket.assigns.pc, cand)
+
+    {:noreply, socket}
+  end
+
   defp spawn_peer_connection(socket) do
     pc_opts =
       [
@@ -142,7 +162,7 @@ defmodule LiveExWebRTC.Publisher do
       [name: socket.assigns[:gen_server_name]]
       |> Enum.reject(fn {_k, v} -> v == nil end)
 
-    PeerConnection.start_link(pc_opts, gen_server_opts)
+    PeerConnection.start(pc_opts, gen_server_opts)
   end
 
   defp gather_candidates(pc) do

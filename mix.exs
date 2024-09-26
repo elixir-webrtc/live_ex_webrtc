@@ -20,6 +20,7 @@ defmodule LiveExWebrtc.MixProject do
   defp deps do
     [
       {:phoenix_live_view, "~> 0.20.17"},
+      {:jason, "~> 1.0"},
       {:ex_webrtc, "~> 0.4.1"}
     ]
   end
