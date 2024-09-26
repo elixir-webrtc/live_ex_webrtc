@@ -1,4 +1,4 @@
-export const LiveExWebRTCPlayer = {
+export const Subscriber = {
   async mounted() {
     this.pc = new RTCPeerConnection();
     this.pc.ontrack = (ev) => {

@@ -5,7 +5,7 @@ defmodule LiveExWebRTC.Publisher do
 
   def render(assigns) do
     ~H"""
-    <div id={@id} phx-hook="LiveExWebRTCPublisher" class="h-full w-full flex justify-between gap-6">
+    <div id={@id} phx-hook="Publisher" class="h-full w-full flex justify-between gap-6">
       <div class="w-full flex flex-col">
         <details>
           <summary class="font-bold text-[#0d0d0d] py-2.5">Devices</summary>

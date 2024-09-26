@@ -1,4 +1,4 @@
-import { LiveExWebRTCPlayer } from "./player.js";
-import { LiveExWebRTCPublisher } from "./publisher.js";
+import { Publisher } from "./publisher.js";
+import { Subscriber } from "./subscriber.js";
 
-export { LiveExWebRTCPlayer, LiveExWebRTCPublisher };
+export { Publisher, Subscriber };

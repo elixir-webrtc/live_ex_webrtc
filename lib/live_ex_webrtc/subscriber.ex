@@ -1,11 +1,11 @@
-defmodule LiveExWebRTC.Player do
+defmodule LiveExWebRTC.Subscriber do
   use Phoenix.LiveComponent
 
   alias ExWebRTC.{MediaStreamTrack, PeerConnection, SessionDescription}
 
   def render(assigns) do
     ~H"""
-    <video id={@id} phx-hook="LiveExWebRTCPlayer" controls autoplay muted></video>
+    <video id={@id} phx-hook="Subscriber" controls autoplay muted></video>
     """
   end
 

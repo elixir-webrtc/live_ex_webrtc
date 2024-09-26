@@ -1,4 +1,4 @@
-export const LiveExWebRTCPublisher = {
+export const Publisher = {
   async mounted() {
     const view = this;
 
