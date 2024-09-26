@@ -4,8 +4,10 @@ defmodule LiveExWebRTC.Subscriber do
   alias ExWebRTC.{MediaStreamTrack, PeerConnection, SessionDescription}
 
   def render(assigns) do
+    assigns = assign_new(assigns, :class, fn -> "" end)
+
     ~H"""
-    <video id={@id} phx-hook="Subscriber" controls autoplay muted></video>
+    <video id={@id} phx-hook="Subscriber" class={@class} controls autoplay muted></video>
     """
   end
 
