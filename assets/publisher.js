@@ -40,14 +40,9 @@ export const LiveExWebRTCPublisher = {
       view.startStreaming(view);
     };
 
-    await this.findDevices(this);
-
-    // setup preview using default audio and video
-    await view.setupStream(view);
-
     // handle remote events
     view.handleEvent(`answer-${view.el.id}`, async (answer) => {
-      if (view.pc !== undefined) {
+      if (view.pc) {
         await view.pc.setRemoteDescription(answer);
       } else {
         console.warn("Received SDP cnswer but there is no PC. Ignoring.");
@@ -55,34 +50,54 @@ export const LiveExWebRTCPublisher = {
     });
 
     view.handleEvent(`ice-${view.el.id}`, async (cand) => {
-      if (view.pc !== undefined) {
+      if (view.pc) {
         await view.pc.addIceCandidate(JSON.parse(cand));
       } else {
         console.warn("Received ICE candidate but there is no PC. Ignoring.");
       }
     });
+
+    try {
+      await this.findDevices(this);
+      try {
+        await view.setupStream(view);
+        button.disabled = false;
+        audioApplyButton.disabled = false;
+        videoApplyButton.disabled = false;
+      } catch (error) {
+        console.error("Couldn't setup stream");
+      }
+    } catch (error) {
+      console.error("Couldn't find audio and/or video devices");
+    }
   },
 
   disableControls(view) {
-    view.audioDevices.setAttribute("disabled", "disabled");
-    view.videoDevices.setAttribute("disabled", "disabled");
-    view.echoCancellation.setAttribute("disabled", "disabled");
-    view.autoGainControl.setAttribute("disabled", "disabled");
-    view.noiseSuppression.setAttribute("disabled", "disabled");
-    view.width.setAttribute("disabled", "disabled");
-    view.height.setAttribute("disabled", "disabled");
-    view.fps.setAttribute("disabled", "disabled");
+    view.audioDevices.disabled = true;
+    view.videoDevices.disabled = true;
+    view.echoCancellation.disabled = true;
+    view.autoGainControl.disabled = true;
+    view.noiseSuppression.disabled = true;
+    view.width.disabled = true;
+    view.height.disabled = true;
+    view.fps.disabled = true;
+    view.audioApplyButton.disabled = true;
+    view.videoApplyButton.disabled = true;
+    view.bitrate.disabled = true;
   },
 
   enableControls(view) {
-    view.audioDevices.removeAttribute("disabled");
-    view.videoDevices.removeAttribute("disabled");
-    view.echoCancellation.removeAttribute("disabled");
-    view.autoGainControl.removeAttribute("disabled");
-    view.noiseSuppression.removeAttribute("disabled");
-    view.width.removeAttribute("disabled");
-    view.height.removeAttribute("disabled");
-    view.fps.removeAttribute("disabled");
+    view.audioDevices.disabled = false;
+    view.videoDevices.disabled = false;
+    view.echoCancellation.disabled = false;
+    view.autoGainControl.disabled = false;
+    view.noiseSuppression.disabled = false;
+    view.width.disabled = false;
+    view.height.disabled = false;
+    view.fps.disabled = false;
+    view.audioApplyButton.disabled = false;
+    view.videoApplyButton.disabled = false;
+    view.bitrate.disabled = false;
   },
 
   async findDevices(view) {

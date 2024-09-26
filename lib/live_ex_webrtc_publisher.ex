@@ -14,7 +14,7 @@ defmodule LiveExWebRTC.Publisher do
               <label for="audioDevices" class="font-medium">Audio Device</label>
               <select
                 id="audioDevices"
-                class="rounded-lg focus:border-brand focus:outline-none focus:ring-0"
+                class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
               >
               </select>
             </div>
@@ -22,7 +22,7 @@ defmodule LiveExWebRTC.Publisher do
               <label for="videoDevices" class="">Video Device</label>
               <select
                 id="videoDevices"
-                class="rounded-lg focus:border-brand focus:outline-none focus:ring-0"
+                class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
               >
               </select>
             </div>
@@ -44,7 +44,7 @@ defmodule LiveExWebRTC.Publisher do
               <input type="checkbox" id="noiseSuppression" class="rounded-full" checked />
             </div>
           </div>
-          <button id="audioApplyButton" class="rounded-lg bg-brand px-10 py-2.5 hover:bg-brand/90 text-white font-bold">Apply</button>
+          <button id="audioApplyButton" class="rounded-lg px-10 py-2.5 bg-brand disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold" disabled>Apply</button>
         </details>
         <details>
           <summary class="font-bold text-[#0d0d0d] py-2.5">Video Settings</summary>
@@ -55,14 +55,14 @@ defmodule LiveExWebRTC.Publisher do
                 type="text"
                 id="width"
                 value="1280"
-                class="rounded-lg focus:border-brand focus:outline-none focus:ring-0"
+                class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
               />
               <label for="height">Height</label>
               <input
                 type="text"
                 id="height"
                 value="720"
-                class="rounded-lg focus:border-brand focus:outline-none focus:ring-0"
+                class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
               />
             </div>
             <div class="flex gap-2.5 items-center">
@@ -71,7 +71,7 @@ defmodule LiveExWebRTC.Publisher do
                 type="text"
                 id="fps"
                 value="24"
-                class="rounded-lg focus:border-brand focus:outline-none focus:ring-0"
+                class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
               />
             </div>
             <div class="flex gap-2.5 items-center">
@@ -80,11 +80,11 @@ defmodule LiveExWebRTC.Publisher do
                 type="text"
                 id="bitrate"
                 value="1500"
-                class="rounded-lg focus:border-brand focus:outline-none focus:ring-0"
+                class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
               />
             </div>
           </div>
-          <button id="videoApplyButton" class="rounded-lg bg-brand px-10 py-2.5 hover:bg-brand/90 text-white font-bold">Apply</button>
+          <button id="videoApplyButton" class="rounded-lg px-10 py-2.5 bg-brand disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold" disabled>Apply</button>
         </details>
         <div id="videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 py-2.5">
           <video id="previewPlayer" class="m-auto rounded-lg bg-black h-full" autoplay controls muted>
@@ -93,7 +93,8 @@ defmodule LiveExWebRTC.Publisher do
         <div class="py-2.5">
           <button
             id="button"
-            class="rounded-lg w-full bg-brand/100 px-2.5 py-2.5 hover:bg-brand/90 text-white font-bold"
+            class="rounded-lg w-full px-2.5 py-2.5 bg-brand/100 disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold"
+            disabled
           >
             Start streaming
           </button>
