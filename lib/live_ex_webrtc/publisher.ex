@@ -86,9 +86,33 @@ defmodule LiveExWebRTC.Publisher do
           </div>
           <button id="videoApplyButton" class="rounded-lg px-10 py-2.5 bg-brand disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold" disabled>Apply</button>
         </details>
-        <div id="videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 py-2.5">
+        <div id="videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 pt-2.5">
           <video id="previewPlayer" class="m-auto rounded-lg bg-black h-full" autoplay controls muted>
           </video>
+        </div>
+        <div id="stats", class="flex justify-between w-full text-[#606060] ">
+          <div class="flex p-1 gap-4">
+            <div class="flex flex-col">
+              <label for="audio-bitrate">Audio Bitrate (kbps): </label>
+              <span id="audio-bitrate">0</span>
+            </div>
+            <div class="flex flex-col">
+              <label for="video-bitrate">Video Bitrate (kbps): </label>
+              <span id="video-bitrate">0</span>
+            </div>
+            <div class="flex flex-col">
+              <label for="packet-loss">Packet loss (%): </label>
+              <span id="packet-loss">0</span>
+            </div>
+            <div class="flex flex-col">
+              <label for="time">Time: </label>
+              <span id="time">00:00:00</span>
+            </div>
+          </div>
+          <div class="p-1 flex items-center">
+            <div id="status" class="w-3 h-3 rounded-full bg-red-500">
+          </div>
+          </div>
         </div>
         <div class="py-2.5">
           <button
