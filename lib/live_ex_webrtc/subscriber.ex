@@ -41,9 +41,10 @@ defmodule LiveExWebRTC.Subscriber do
     pc_opts =
       [
         ice_servers: socket.assigns[:ice_servers],
+        ice_ip_filter: socket.assigns[:ice_ip_filter],
+        ice_port_range: socket.assigns[:ice_port_range],
         audio_codecs: socket.assigns[:audio_codecs],
-        video_codecs: socket.assigns[:video_codecs],
-        ice_port_range: socket.assigns[:ice_port_range]
+        video_codecs: socket.assigns[:video_codecs]
       ]
       |> Enum.reject(fn {_k, v} -> v == nil end)
 
