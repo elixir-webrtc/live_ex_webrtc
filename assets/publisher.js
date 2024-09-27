@@ -2,47 +2,47 @@ export const Publisher = {
   async mounted() {
     const view = this;
 
-    this.audioDevices = document.getElementById("audioDevices");
-    this.videoDevices = document.getElementById("videoDevices");
+    view.audioDevices = document.getElementById("lex-audio-devices");
+    view.videoDevices = document.getElementById("lex-video-devices");
 
-    this.echoCancellation = document.getElementById("echoCancellation");
-    this.autoGainControl = document.getElementById("autoGainControl");
-    this.noiseSuppression = document.getElementById("noiseSuppression");
+    view.echoCancellation = document.getElementById("lex-echo-cancellation");
+    view.autoGainControl = document.getElementById("lex-auto-gain-control");
+    view.noiseSuppression = document.getElementById("lex-noise-suppression");
 
-    this.width = document.getElementById("width");
-    this.height = document.getElementById("height");
-    this.fps = document.getElementById("fps");
-    this.bitrate = document.getElementById("bitrate");
+    view.width = document.getElementById("lex-width");
+    view.height = document.getElementById("lex-height");
+    view.fps = document.getElementById("lex-fps");
+    view.bitrate = document.getElementById("lex-bitrate");
 
-    this.previewPlayer = document.getElementById("previewPlayer");
+    view.previewPlayer = document.getElementById("lex-preview-player");
 
-    this.audioBitrate = document.getElementById("audio-bitrate");
-    this.videoBitrate = document.getElementById("video-bitrate");
-    this.packetLoss = document.getElementById("packet-loss");
-    this.status = document.getElementById("status");
-    this.time = document.getElementById("time");
+    view.audioBitrate = document.getElementById("lex-audio-bitrate");
+    view.videoBitrate = document.getElementById("lex-video-bitrate");
+    view.packetLoss = document.getElementById("lex-packet-loss");
+    view.status = document.getElementById("lex-status");
+    view.time = document.getElementById("lex-time");
 
-    this.audioApplyButton = document.getElementById("audioApplyButton");
-    this.videoApplyButton = document.getElementById("videoApplyButton");
-    this.button = document.getElementById("button");
+    view.audioApplyButton = document.getElementById("lex-audio-apply-button");
+    view.videoApplyButton = document.getElementById("lex-video-apply-button");
+    view.button = document.getElementById("lex-button");
 
-    this.audioDevices.onchange = function () {
+    view.audioDevices.onchange = function () {
       view.setupStream(view);
     };
 
-    this.videoDevices.onchange = function () {
+    view.videoDevices.onchange = function () {
       view.setupStream(view);
     };
 
-    this.audioApplyButton.onclick = function () {
+    view.audioApplyButton.onclick = function () {
       view.setupStream(view);
     };
 
-    this.videoApplyButton.onclick = function () {
+    view.videoApplyButton.onclick = function () {
       view.setupStream(view);
     };
 
-    this.button.onclick = function () {
+    view.button.onclick = function () {
       view.startStreaming(view);
     };
 
@@ -64,17 +64,20 @@ export const Publisher = {
     });
 
     try {
-      await this.findDevices(this);
+      await view.findDevices(view);
       try {
         await view.setupStream(view);
-        button.disabled = false;
-        audioApplyButton.disabled = false;
-        videoApplyButton.disabled = false;
+        view.button.disabled = false;
+        view.audioApplyButton.disabled = false;
+        view.videoApplyButton.disabled = false;
       } catch (error) {
-        console.error("Couldn't setup stream");
+        console.error("Couldn't setup stream, reason:", error.stack);
       }
     } catch (error) {
-      console.error("Couldn't find audio and/or video devices");
+      console.error(
+        "Couldn't find audio and/or video devices, reason: ",
+        error.stack
+      );
     }
   },
 
@@ -119,15 +122,11 @@ export const Publisher = {
     const devices = await navigator.mediaDevices.enumerateDevices();
     devices.forEach((device) => {
       if (device.kind === "videoinput") {
-        view.videoDevices.options[videoDevices.options.length] = new Option(
-          device.label,
-          device.deviceId
-        );
+        view.videoDevices.options[view.videoDevices.options.length] =
+          new Option(device.label, device.deviceId);
       } else if (device.kind === "audioinput") {
-        view.audioDevices.options[audioDevices.options.length] = new Option(
-          device.label,
-          device.deviceId
-        );
+        view.audioDevices.options[view.audioDevices.options.length] =
+          new Option(device.label, device.deviceId);
       }
     });
 
