@@ -184,7 +184,6 @@ export function createPublisherHook(iceServers = []) {
 
       view.disableControls(view);
 
-      console.log(iceServers);
       view.pc = new RTCPeerConnection({ iceServers: iceServers });
 
       // handle local events

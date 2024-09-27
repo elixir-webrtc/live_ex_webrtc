@@ -11,6 +11,10 @@ defmodule LiveExWebRTC.Subscriber do
     """
   end
 
+  def handle_event(_event, _unsigned_params, %{assigns: %{pc: nil}} = socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("offer", unsigned_params, socket) do
     offer = SessionDescription.from_json(unsigned_params)
     {:ok, pc} = spawn_peer_connection(socket)
@@ -33,6 +37,22 @@ defmodule LiveExWebRTC.Subscriber do
 
     socket = assign(socket, :pc, pc)
     socket = push_event(socket, "answer-#{socket.assigns.id}", SessionDescription.to_json(answer))
+
+    {:noreply, socket}
+  end
+
+  def handle_event("ice", "null", socket) do
+    :ok = PeerConnection.add_ice_candidate(socket.assigns.pc, %{candidate: ""})
+    {:noreply, socket}
+  end
+
+  def handle_event("ice", unsigned_params, socket) do
+    cand =
+      unsigned_params
+      |> Jason.decode!()
+      |> ExWebRTC.ICECandidate.from_json()
+
+    :ok = PeerConnection.add_ice_candidate(socket.assigns.pc, cand)
 
     {:noreply, socket}
   end
