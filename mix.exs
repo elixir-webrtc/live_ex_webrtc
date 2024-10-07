@@ -1,13 +1,23 @@
 defmodule LiveExWebrtc.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+  @source_url "https://github.com/elixir-webrtc/live_ex_webrtc"
+
   def project do
     [
       app: :live_ex_webrtc,
-      version: "0.1.0",
-      elixir: "~> 1.16",
+      version: @version,
+      elixir: "~> 1.15",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      description: "Phoenix Live Components for Elixir WebRTC",
+      package: package(),
+      deps: deps(),
+
+      # docs
+      docs: docs(),
+      source_url: @source_url
     ]
   end
 
@@ -17,11 +27,32 @@ defmodule LiveExWebrtc.MixProject do
     ]
   end
 
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_env), do: ["lib"]
+
+  def package do
+    [
+      licenses: ["Apache-2.0"],
+      links: %{"GitHub" => @source_url}
+    ]
+  end
+
   defp deps do
     [
       {:phoenix_live_view, "~> 0.20.17"},
       {:jason, "~> 1.0"},
-      {:ex_webrtc, "~> 0.5.0"}
+      {:ex_webrtc, "~> 0.5.0"},
+      {:ex_doc, "~> 0.31.0", only: :dev, runtime: false}
+    ]
+  end
+
+  defp docs do
+    [
+      main: "readme",
+      extras: ["README.md"],
+      source_ref: "v#{@version}",
+      formatters: ["html"],
+      nest_modules_by_prefix: [LiveExWebRTC]
     ]
   end
 end

@@ -1,10 +1,13 @@
-# LiveExWebrtc
+# LiveExWebRTC
 
-**WIP**
+[![Hex.pm](https://img.shields.io/hexpm/v/live_ex_webrtc.svg)](https://hex.pm/packages/live_ex_webrtc)
+[![API Docs](https://img.shields.io/badge/api-docs-yellow.svg?style=flat)](https://hexdocs.pm/live_ex_webrtc)
 
 Phoenix Live Components for Elixir WebRTC.
 
 ## Installation
+
+In your `mix.exs`:
 
 ```elixir
 def deps do
@@ -14,45 +17,23 @@ def deps do
 end
 ```
 
-## Usage
-
-1. Add LiveExWebRTCPlayer hook to the list of your Phoenix Live View hooks:
+In your `tailwind.config.js`
 
 ```js
-import { LiveExWebRTCPlayer } from "live_ex_webrtc";
-let Hooks = {};
-Hooks.LiveExWebRTCPlayer = LiveExWebRTCPlayer;
-let liveSocket = new LiveSocket("live", Socket, { hooks: Hooks });
-```
-
-2. Use LiveExWebRTC.Player component in your LiveView:
-
-```ex
-defmodule MyLiveView do
-  use Phoenix.LiveView
-
-  alias ExWebRTC.RTPCodecParameters
-
-  @video_codecs [
-    %RTPCodecParameters{
-      payload_type: 96,
-      mime_type: "video/VP8",
-      clock_rate: 90_000
-    }
+module.exports = {
+  content: [
+    "../deps/live_ex_webrtc/**/*.*ex" // ADD THIS LINE
   ]
-
-  def mount(_params, _session, socket) do
-    socket = assign(socket, video_codecs: @video_codecs)
-    {:ok, socket}
-  end
-
-  def render(assigns) do
-    ~H"""
-    <.live_component module={LiveExWebRTC.Player} id="player" video_codecs={@video_codecs} />
-    """
-  end
-end
+}
 ```
+
+## Usage
+
+`LiveExWebRTC` comes with two `Phoenix.LiveComponent`s:
+* `LiveExWebRTC.Publisher` - sends audio and video via WebRTC from a web browser to a Phoenix app (browser publishes)
+* `LiveExWebRTC.Subscriber` - sends audio and video via WebRTC from a Phoenix app to a web browser (browser subscribes)
+
+See module docs for more.
 
 ## Local development
 
@@ -86,8 +67,8 @@ For local development:
   }
   ```
 
-> [!IMPORTANT]
+> #### Important {: .info}
 > Separate paths with `:` on MacOS/Linux and with `;` on Windows.
 
-> [!IMPORTANT]
+> #### Important {: .info}
 > Specify path to live_ex_webrtc's parent directory.

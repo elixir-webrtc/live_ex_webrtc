@@ -1,8 +1,74 @@
 defmodule LiveExWebRTC.Publisher do
+  @moduledoc """
+  `Phoenix.LiveComponent` for sending audio and video via WebRTC from a browser to a Phoenix app (browser publishes).
+
+  It will render a view with:
+  * audio and video device selects
+  * audio and video stream configs
+  * stream preview
+  * transmission stats
+
+  Once rendered, your `Phoenix.LiveView` will receive `t:init_msg/0` and will start getting
+  RTP audio and video packets that can be forwarded to other clients.
+
+  Publisher always negotiates a single audio and video track.
+
+  ## Assigns
+
+  * `ice_servers` - a list of `t:ExWebRTC.PeerConnection.Configuration.ice_server/0`,
+  * `ice_ip_filter` - `t:ExICE.ICEAgent.ip_filter/0`,
+  * `ice_port_range` - `t:Enumerable.t(non_neg_integer())/1`,
+  * `audio_codecs` - a list of `t:ExWebRTC.RTPCodecParameters.t/0`,
+  * `video_codecs` - a list of `t:ExWebRTC.RTPCodecParameters.t/0`,
+  * `gen_server_name` - `t:GenServer.name/0`
+
+  ## JavaScript Hook
+
+  Publisher live component requires JavaScript hook to be registered under `Publisher` name.
+  The hook can be created using `createPublisherHook` function.
+  For example:
+
+  ```javascript
+  import { createPublisherHook } from "live_ex_webrtc";
+  let Hooks = {};
+  const iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
+  Hooks.Publisher = createPublisherHook(iceServers);
+  let liveSocket = new LiveSocket("/live", Socket, {
+    // ...
+    hooks: Hooks
+  });
+  ```
+
+  ## Examples
+
+  ```elixir
+  <.live_component
+    module={LiveExWebRTC.Publisher}
+    id="publisher"
+    ice_servers={[%{urls: "stun:stun.l.google.com:19302"}]}
+  />
+  ```
+  """
   use Phoenix.LiveComponent
 
-  alias ExWebRTC.{PeerConnection, SessionDescription}
+  alias ExWebRTC.{ICECandidate, PeerConnection, SessionDescription}
 
+  @typedoc """
+  Message sent to the `Phoenix.LiveView` after component's initialization.
+
+  * `pc` - `ExWebRTC.PeerConnection`'s pid spawned by this live component
+  * `audio_track_id` - id of audio track
+  * `video_track_id` - id of video track
+  """
+  @type init_msg() ::
+          {:live_ex_webrtc,
+           %{
+             pc: pid(),
+             audio_track_id: String.t(),
+             video_track_id: String.t()
+           }}
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div id={@id} phx-hook="Publisher" class="h-full w-full flex justify-between gap-6">
@@ -128,10 +194,12 @@ defmodule LiveExWebRTC.Publisher do
     """
   end
 
+  @impl true
   def handle_event(_event, _unsigned_params, %{assigns: %{pc: nil}} = socket) do
     {:noreply, socket}
   end
 
+  @impl true
   def handle_event("offer", unsigned_params, socket) do
     offer = SessionDescription.from_json(unsigned_params)
     {:ok, pc} = spawn_peer_connection(socket)
@@ -157,11 +225,13 @@ defmodule LiveExWebRTC.Publisher do
     {:noreply, socket}
   end
 
+  @impl true
   def handle_event("ice", "null", socket) do
-    :ok = PeerConnection.add_ice_candidate(socket.assigns.pc, %{candidate: ""})
+    :ok = PeerConnection.add_ice_candidate(socket.assigns.pc, %ICECandidate{candidate: ""})
     {:noreply, socket}
   end
 
+  @impl true
   def handle_event("ice", unsigned_params, socket) do
     cand =
       unsigned_params
