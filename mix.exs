@@ -1,7 +1,7 @@
 defmodule LiveExWebrtc.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.2.0"
   @source_url "https://github.com/elixir-webrtc/live_ex_webrtc"
 
   def project do
@@ -41,7 +41,7 @@ defmodule LiveExWebrtc.MixProject do
     [
       {:phoenix_live_view, "~> 0.20.17"},
       {:jason, "~> 1.0"},
-      {:ex_webrtc, "~> 0.5.0"},
+      {:ex_webrtc, "~> 0.6.0"},
       {:ex_doc, "~> 0.31.0", only: :dev, runtime: false}
     ]
   end
