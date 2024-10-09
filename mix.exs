@@ -1,7 +1,7 @@
 defmodule LiveExWebrtc.MixProject do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.2.1"
   @source_url "https://github.com/elixir-webrtc/live_ex_webrtc"
 
   def project do
@@ -33,7 +33,8 @@ defmodule LiveExWebrtc.MixProject do
   def package do
     [
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => @source_url}
+      links: %{"GitHub" => @source_url},
+      files: ~w(mix.exs lib assets package.json README.md LICENSE)
     ]
   end
 
