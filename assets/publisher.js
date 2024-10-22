@@ -3,6 +3,9 @@ export function createPublisherHook(iceServers = []) {
     async mounted() {
       const view = this;
 
+      view.handleEvent("start-streaming", () => view.startStreaming(view));
+      view.handleEvent("stop-streaming", () => view.stopStreaming(view));
+
       view.audioDevices = document.getElementById("lex-audio-devices");
       view.videoDevices = document.getElementById("lex-video-devices");
 
@@ -41,10 +44,6 @@ export function createPublisherHook(iceServers = []) {
 
       view.videoApplyButton.onclick = function () {
         view.setupStream(view);
-      };
-
-      view.button.onclick = function () {
-        view.startStreaming(view);
       };
 
       // handle remote events
@@ -177,11 +176,6 @@ export function createPublisherHook(iceServers = []) {
     },
 
     async startStreaming(view) {
-      view.button.innerText = "Stop streaming";
-      view.button.onclick = function () {
-        view.stopStreaming(view);
-      };
-
       view.disableControls(view);
 
       view.pc = new RTCPeerConnection({ iceServers: iceServers });
@@ -275,6 +269,7 @@ export function createPublisherHook(iceServers = []) {
             }
           }, 1000);
         } else if (view.pc.connectionState === "failed") {
+          view.pushEvent("stop-streaming", {reason: "failed"})
           view.stopStreaming(view);
         }
       };
@@ -311,11 +306,6 @@ export function createPublisherHook(iceServers = []) {
       view.resetStats(view);
 
       view.enableControls(view);
-
-      view.button.innerText = "Start Streaming";
-      view.button.onclick = function () {
-        view.startStreaming(view);
-      };
     },
 
     resetStats(view) {
