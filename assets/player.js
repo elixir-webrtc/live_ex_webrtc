@@ -1,4 +1,4 @@
-export function createSubscriberHook(iceServers = []) {
+export function createPlayerHook(iceServers = []) {
   return {
     async mounted() {
       this.pc = new RTCPeerConnection({ iceServers: iceServers });
