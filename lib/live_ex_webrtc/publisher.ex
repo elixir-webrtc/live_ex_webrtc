@@ -58,7 +58,7 @@ defmodule LiveExWebRTC.Publisher do
     end
 
     @impl true
-    def moount(_params, _session, socket) do
+    def mount(_params, _session, socket) do
       socket = Publisher.attach(socket, id: "publisher", pubsub: LiveTwitch.PubSub)
       {:ok, socket}
     end
@@ -104,7 +104,7 @@ defmodule LiveExWebRTC.Publisher do
   """
   def live_render(assigns) do
     ~H"""
-    <%= live_render(@socket, __MODULE__, id: @publisher.id, session: %{"publisher_id" => @publisher.id}) %>
+    <%= live_render(@socket, __MODULE__, id: "#{@publisher.id}-lv", session: %{"publisher_id" => @publisher.id}) %>
     """
   end
 

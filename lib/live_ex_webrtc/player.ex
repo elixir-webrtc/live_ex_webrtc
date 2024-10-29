@@ -50,7 +50,7 @@ defmodule LiveExWebRTC.Player do
     end
 
     @impl true
-    def moount(_params, _session, socket) do
+    def mount(_params, _session, socket) do
       socket = Player.attach(socket, id: "player", publisher_id: "publisher", pubsub: LiveTwitch.PubSub)
       {:ok, socket}
     end
@@ -100,7 +100,7 @@ defmodule LiveExWebRTC.Player do
   """
   def live_render(assigns) do
     ~H"""
-    <%= live_render(@socket, __MODULE__, id: @player.id, session: %{
+    <%= live_render(@socket, __MODULE__, id: "#{@player.id}-lv", session: %{
       "publisher_id" => @player.publisher_id,
       "class" => @class
     }) %>
