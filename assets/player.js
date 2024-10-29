@@ -8,8 +8,9 @@ export function createPlayerHook(iceServers = []) {
       };
 
       this.pc.ontrack = (ev) => {
-        console.log("ontrack");
-        this.el.srcObject = ev.streams[0];
+        if (!this.el.srcObject) {
+          this.el.srcObject = ev.streams[0];
+        }
       };
       this.pc.addTransceiver("audio", { direction: "recvonly" });
       this.pc.addTransceiver("video", { direction: "recvonly" });
