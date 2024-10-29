@@ -1,4 +1,4 @@
 import { createPublisherHook } from "./publisher.js";
-import { createSubscriberHook } from "./subscriber.js";
+import { createPlayerHook } from "./player.js";
 
-export { createPublisherHook, createSubscriberHook };
+export { createPublisherHook, createPlayerHook };

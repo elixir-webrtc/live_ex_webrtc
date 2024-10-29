@@ -29,11 +29,11 @@ module.exports = {
 
 ## Usage
 
-`LiveExWebRTC` comes with two `Phoenix.LiveComponent`s:
+`LiveExWebRTC` comes with two `Phoenix.LiveView`s:
 * `LiveExWebRTC.Publisher` - sends audio and video via WebRTC from a web browser to a Phoenix app (browser publishes)
-* `LiveExWebRTC.Subscriber` - sends audio and video via WebRTC from a Phoenix app to a web browser (browser subscribes)
+* `LiveExWebRTC.Player` - sends audio and video via WebRTC from a Phoenix app to a web browser and plays it in the HTMLVideoElement (browser subscribes)
 
-See module docs for more.
+See module docs and [live_broadcaster](https://github.com/elixir-webrtc/live_broadcaster) for more.
 
 ## Local development
 

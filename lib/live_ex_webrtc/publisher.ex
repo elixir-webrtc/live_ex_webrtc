@@ -1,30 +1,33 @@
 defmodule LiveExWebRTC.Publisher do
-  @moduledoc """
+  @moduledoc ~S'''
   Component for sending audio and video via WebRTC from a browser to a Phoenix app (browser publishes).
 
-  It will render a view with:
-  * audio and video device selects
-  * audio and video stream configs
-  * stream preview
-  * transmission stats
+  It:
+  * renders:
+    * audio and video device selects
+    * audio and video stream configs
+    * stream preview
+    * transmission stats
+  * on clicking "Start Streaming", creates WebRTC PeerConnection both on the client and server side
+  * connects those two peer connections negotiatiing a single audio and video track
+  * sends audio and video from selected devices to the live view process
+  * publishes received audio and video packets to the configured PubSub
 
-  Once rendered, your `Phoenix.LiveView` will receive `t:init_msg/0` and will start getting
-  RTP audio and video packets that can be forwarded to other clients.
+  When `LiveExWebRTC.Player` is used, audio and video packets are delivered automatically,
+  assuming both components are configured with the same PubSub.
 
-  Publisher always negotiates a single audio and video track.
+  If `LiveExWebRTC.Player` is not used, you should subscribe to `streams:audio:#{publisher_id}`
+  and `streams:video:#{publisher_id}` topics.
 
-  ## Assigns
+  Keyframe requests should be sent on `publishers:#{publisher_id}` topic e.g.
 
-  * `ice_servers` - a list of `t:ExWebRTC.PeerConnection.Configuration.ice_server/0`,
-  * `ice_ip_filter` - `t:ExICE.ICEAgent.ip_filter/0`,
-  * `ice_port_range` - `t:Enumerable.t(non_neg_integer())/1`,
-  * `audio_codecs` - a list of `t:ExWebRTC.RTPCodecParameters.t/0`,
-  * `video_codecs` - a list of `t:ExWebRTC.RTPCodecParameters.t/0`,
-  * `gen_server_name` - `t:GenServer.name/0`
+  ```elixir
+  PubSub.broadcast(LiveTwitch.PubSub, "publishers:my_publisher", {:live_ex_webrtc, :keyframe_req})
+  ```
 
   ## JavaScript Hook
 
-  Publisher live component requires JavaScript hook to be registered under `Publisher` name.
+  Publisher live view requires JavaScript hook to be registered under `Publisher` name.
   The hook can be created using `createPublisherHook` function.
   For example:
 
@@ -42,14 +45,42 @@ defmodule LiveExWebRTC.Publisher do
   ## Examples
 
   ```elixir
-  TODO
+  defmodule LiveTwitchWeb.StreamerLive do
+    use LiveTwitchWeb, :live_view
+
+    alias LiveExWebRTC.Publisher
+
+    @impl true
+    def render(assigns) do
+    ~H"""
+    <Publisher.live_render socket={@socket} publisher={@publisher} />
+    """
+    end
+
+    @impl true
+    def mount(_params, _session, socket) do
+      socket = Publisher.attach(socket, id: "publisher", pubsub: LiveTwitch.PubSub)
+      {:ok, socket}
+    end
+  end
   ```
-  """
+  '''
   use Phoenix.LiveView
 
   alias LiveExWebRTC.Publisher
   alias ExWebRTC.{ICECandidate, PeerConnection, SessionDescription}
   alias Phoenix.PubSub
+
+  @type on_connected() :: (publisher_id :: String.t() -> any())
+
+  @type on_packet() ::
+          (publisher_id :: String.t(),
+           packet_type :: :audio | :video,
+           packet :: ExRTP.Packet.t(),
+           socket :: Phoenix.LiveView.Socket.t() ->
+             packet :: ExRTP.Packet.t())
+
+  @type t() :: struct()
 
   defstruct id: nil,
             pc: nil,
@@ -64,22 +95,99 @@ defmodule LiveExWebRTC.Publisher do
             ice_port_range: nil,
             audio_codecs: nil,
             video_codecs: nil,
-            name: nil
+            pc_genserver_opts: nil
 
-  attr(:socket, Phoenix.LiveView.Socket, required: true)
-  attr(:publisher, __MODULE__, required: true)
+  attr(:socket, Phoenix.LiveView.Socket, required: true, doc: "Parent live view socket")
 
-  def studio(assigns) do
+  attr(:publisher, __MODULE__,
+    required: true,
+    doc: """
+    Publisher struct. It is used to pass publisher id to the newly created live view via live view session.
+    This data is then used to do a handshake between parent live view and child live view during which child live
+    view receives the whole Publisher struct.
+    """
+  )
+
+  @doc """
+  Helper function for rendering Publisher live view.
+  """
+  def live_render(assigns) do
     ~H"""
-    <%= live_render(@socket, __MODULE__, id: @publisher.id, session: %{"publisher_id" => @publisher.id}) %>
+    <%= live_render(@socket, __MODULE__, id: "#{@publisher.id}-lv", session: %{"publisher_id" => @publisher.id}) %>
     """
   end
 
+  @doc """
+  Attaches required hooks and creates `t:t/0` struct.
+
+  Created struct is saved in socket's assigns and has to be passed to `LiveExWebRTC.Publisher.live_render/1`.
+
+  Options:
+  * `id` - publisher id. This is typically your user id (if there is users database).
+  It is used to identify live view and generated HTML elements.
+  * `pubsub` - a pubsub that publisher live view will use for broadcasting audio and video packets received from a browser. See module doc for more.
+  * `on_connected` - callback called when the underlying peer connection changes its state to the `:connected`. See `t:on_connected/0`.
+  * `on_packet` - callback called for each audio and video RTP packet. Can be used to modify the packet before publishing it on a pubsub. See `t:on_packet/0`.
+  * `ice_servers` - a list of `t:ExWebRTC.PeerConnection.Configuration.ice_server/0`,
+  * `ice_ip_filter` - `t:ExICE.ICEAgent.ip_filter/0`,
+  * `ice_port_range` - `t:Enumerable.t(non_neg_integer())/1`,
+  * `audio_codecs` - a list of `t:ExWebRTC.RTPCodecParameters.t/0`,
+  * `video_codecs` - a list of `t:ExWebRTC.RTPCodecParameters.t/0`,
+  * `pc_genserver_opts` - `t:GenServer.options/0` for the underlying `ExWebRTC.PeerConnection` process.
+  """
+  @spec attach(Phoenix.LiveView.Socket.t(), Keyword.t()) :: Phoenix.LiveView.Socket.t()
+  def attach(socket, opts) do
+    opts =
+      Keyword.validate!(opts, [
+        :id,
+        :name,
+        :pubsub,
+        :on_packet,
+        :on_connected,
+        :ice_servers,
+        :ice_ip_filter,
+        :ice_port_range,
+        :audio_codecs,
+        :video_codecs,
+        :pc_genserver_opts
+      ])
+
+    publisher = %Publisher{
+      id: Keyword.fetch!(opts, :id),
+      pubsub: Keyword.fetch!(opts, :pubsub),
+      on_packet: Keyword.get(opts, :on_packet),
+      on_connected: Keyword.get(opts, :on_connected),
+      ice_servers: Keyword.get(opts, :ice_servers, [%{urls: "stun:stun.l.google.com:19302"}]),
+      ice_ip_filter: Keyword.get(opts, :ice_ip_filter),
+      ice_port_range: Keyword.get(opts, :ice_port_range),
+      audio_codecs: Keyword.get(opts, :audio_codecs),
+      video_codecs: Keyword.get(opts, :video_codecs),
+      pc_genserver_opts: Keyword.get(opts, :pc_genserver_opts, [])
+    }
+
+    socket
+    |> assign(publisher: publisher)
+    |> attach_hook(:handshake, :handle_info, &handshake/2)
+  end
+
+  defp handshake({__MODULE__, {:connected, ref, pid, _meta}}, socket) do
+    send(pid, {ref, socket.assigns.publisher})
+    {:halt, socket}
+  end
+
+  defp handshake(_msg, socket) do
+    {:cont, socket}
+  end
+
+  ## CALLBACKS
+
+  @impl true
   def render(%{publisher: nil} = assigns) do
     ~H"""
     """
   end
 
+  @impl true
   def render(assigns) do
     ~H"""
     <div id={@publisher.id} phx-hook="Publisher" class="h-full w-full flex justify-between gap-6">
@@ -214,12 +322,13 @@ defmodule LiveExWebRTC.Publisher do
     """
   end
 
+  @impl true
   def mount(_params, %{"publisher_id" => pub_id}, socket) do
     socket = assign(socket, publisher: nil)
 
     if connected?(socket) do
       ref = make_ref()
-      send(socket.parent_pid, {__MODULE__, {:attached, ref, self(), %{publisher_id: pub_id}}})
+      send(socket.parent_pid, {__MODULE__, {:connected, ref, self(), %{publisher_id: pub_id}}})
 
       socket =
         receive do
@@ -234,39 +343,7 @@ defmodule LiveExWebRTC.Publisher do
     end
   end
 
-  def attach(socket, opts) do
-    opts =
-      Keyword.validate!(opts, [
-        :id,
-        :name,
-        :pubsub,
-        :on_packet,
-        :on_connected,
-        :ice_servers,
-        :ice_ip_filter,
-        :ice_port_range,
-        :audio_codecs,
-        :video_codecs
-      ])
-
-    publisher = %Publisher{
-      id: Keyword.fetch!(opts, :id),
-      pubsub: Keyword.fetch!(opts, :pubsub),
-      on_packet: Keyword.get(opts, :on_packet),
-      on_connected: Keyword.get(opts, :on_connected),
-      ice_servers: Keyword.get(opts, :ice_servers, [%{urls: "stun:stun.l.google.com:19302"}]),
-      ice_ip_filter: Keyword.get(opts, :ice_ip_filter),
-      ice_port_range: Keyword.get(opts, :ice_port_range),
-      audio_codecs: Keyword.get(opts, :audio_codecs),
-      video_codecs: Keyword.get(opts, :video_codecs),
-      name: Keyword.get(opts, :name)
-    }
-
-    socket
-    |> assign(publisher: publisher)
-    |> attach_hook(:publisher_infos, :handle_info, &attached_handle_info/2)
-  end
-
+  @impl true
   def handle_info({:live_ex_webrtc, :keyframe_req}, socket) do
     %{publisher: publisher} = socket.assigns
 
@@ -277,18 +354,23 @@ defmodule LiveExWebRTC.Publisher do
     {:noreply, socket}
   end
 
+  @impl true
   def handle_info({:ex_webrtc, _pc, {:rtp, track_id, nil, packet}}, socket) do
     %{publisher: publisher} = socket.assigns
 
     case publisher do
       %Publisher{video_track_id: ^track_id} ->
+        packet =
+          if publisher.on_packet,
+            do: publisher.on_packet.(publisher.id, :video, packet, socket),
+            else: packet
+
         PubSub.broadcast(
           publisher.pubsub,
           "streams:video:#{publisher.id}",
           {:live_ex_webrtc, :video, packet}
         )
 
-        if publisher.on_packet, do: publisher.on_packet.(publisher.id, :video, packet, socket)
         {:noreply, socket}
 
       %Publisher{audio_track_id: ^track_id} ->
@@ -303,25 +385,19 @@ defmodule LiveExWebRTC.Publisher do
     end
   end
 
+  @impl true
   def handle_info({:ex_webrtc, _pid, {:connection_state_change, :connected}}, socket) do
     %{publisher: pub} = socket.assigns
     if pub.on_connected, do: pub.on_connected.(pub.id)
     {:noreply, socket}
   end
 
+  @impl true
   def handle_info({:ex_webrtc, _, _}, socket) do
     {:noreply, socket}
   end
 
-  defp attached_handle_info({__MODULE__, {:attached, ref, pid, _meta}}, socket) do
-    send(pid, {ref, socket.assigns.publisher})
-    {:halt, socket}
-  end
-
-  defp attached_handle_info(_msg, socket) do
-    {:cont, socket}
-  end
-
+  @impl true
   def handle_event("start-streaming", _, socket) do
     {:noreply,
      socket
@@ -329,6 +405,7 @@ defmodule LiveExWebRTC.Publisher do
      |> push_event("start-streaming", %{})}
   end
 
+  @impl true
   def handle_event("stop-streaming", _, socket) do
     {:noreply,
      socket
@@ -336,6 +413,7 @@ defmodule LiveExWebRTC.Publisher do
      |> push_event("stop-streaming", %{})}
   end
 
+  @impl true
   def handle_event("offer", unsigned_params, socket) do
     %{publisher: publisher} = socket.assigns
     offer = SessionDescription.from_json(unsigned_params)
@@ -369,6 +447,7 @@ defmodule LiveExWebRTC.Publisher do
      |> push_event("answer-#{publisher.id}", SessionDescription.to_json(answer))}
   end
 
+  @impl true
   def handle_event("ice", "null", socket) do
     %{publisher: publisher} = socket.assigns
 
@@ -382,6 +461,7 @@ defmodule LiveExWebRTC.Publisher do
     end
   end
 
+  @impl true
   def handle_event("ice", unsigned_params, socket) do
     %{publisher: publisher} = socket.assigns
 
@@ -414,11 +494,7 @@ defmodule LiveExWebRTC.Publisher do
       ]
       |> Enum.reject(fn {_k, v} -> v == nil end)
 
-    gen_server_opts =
-      [name: publisher.name]
-      |> Enum.reject(fn {_k, v} -> v == nil end)
-
-    PeerConnection.start(pc_opts, gen_server_opts)
+    PeerConnection.start(pc_opts, publisher.pc_genserver_opts)
   end
 
   defp gather_candidates(pc) do
