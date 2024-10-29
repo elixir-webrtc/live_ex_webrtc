@@ -61,6 +61,15 @@ defmodule LiveExWebRTC.Player do
 
   alias LiveExWebRTC.Player
 
+  @type on_connected() :: (publisher_id :: String.t() -> any())
+
+  @type on_packet() ::
+          (publisher_id :: String.t(),
+           packet_type :: :audio | :video,
+           packet :: ExRTP.Packet.t(),
+           socket :: Phoenix.LiveView.Socket.t() ->
+             packet :: ExRTP.Packet.t())
+
   @type t() :: struct()
 
   defstruct id: nil,
@@ -117,8 +126,8 @@ defmodule LiveExWebRTC.Player do
   It is used to identify live view and generated HTML video player.
   * `publisher_id` - publisher id that this player is going to subscribe to.
   * `pubsub` - a pubsub that player live view will subscribe to for audio and video packets. See module doc for more.
-  * `on_connected` - callback called when the underlying peer connection changes its state to the `:connected`
-  * `on_packet` - callback called for each audio and video RTP packet. Can be used to modify the packet before sending via WebRTC to the other side.
+  * `on_connected` - callback called when the underlying peer connection changes its state to the `:connected`. See `t:on_connected/0`.
+  * `on_packet` - callback called for each audio and video RTP packet. Can be used to modify the packet before sending via WebRTC to the other side. See `t:on_packet/0`.
   * `ice_servers` - a list of `t:ExWebRTC.PeerConnection.Configuration.ice_server/0`,
   * `ice_ip_filter` - `t:ExICE.ICEAgent.ip_filter/0`,
   * `ice_port_range` - `t:Enumerable.t(non_neg_integer())/1`,
@@ -240,7 +249,7 @@ defmodule LiveExWebRTC.Player do
 
     packet =
       if player.on_packet,
-        do: player.on_packet.(player.publisher_id, :audio, packet),
+        do: player.on_packet.(player.publisher_id, :audio, packet, socket),
         else: packet
 
     PeerConnection.send_rtp(player.pc, player.audio_track_id, packet)

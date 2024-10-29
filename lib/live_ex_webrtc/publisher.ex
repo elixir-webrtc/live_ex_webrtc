@@ -71,6 +71,15 @@ defmodule LiveExWebRTC.Publisher do
   alias ExWebRTC.{ICECandidate, PeerConnection, SessionDescription}
   alias Phoenix.PubSub
 
+  @type on_connected() :: (publisher_id :: String.t() -> any())
+
+  @type on_packet() ::
+          (publisher_id :: String.t(),
+           packet_type :: :audio | :video,
+           packet :: ExRTP.Packet.t(),
+           socket :: Phoenix.LiveView.Socket.t() ->
+             packet :: ExRTP.Packet.t())
+
   @type t() :: struct()
 
   defstruct id: nil,
@@ -117,8 +126,8 @@ defmodule LiveExWebRTC.Publisher do
   * `id` - publisher id. This is typically your user id (if there is users database).
   It is used to identify live view and generated HTML elements.
   * `pubsub` - a pubsub that publisher live view will use for broadcasting audio and video packets received from a browser. See module doc for more.
-  * `on_connected` - callback called when the underlying peer connection changes its state to the `:connected`
-  * `on_packet` - callback called for each audio and video RTP packet. Can be used to modify the packet before publishing it on a pubsub.
+  * `on_connected` - callback called when the underlying peer connection changes its state to the `:connected`. See `t:on_connected/0`.
+  * `on_packet` - callback called for each audio and video RTP packet. Can be used to modify the packet before publishing it on a pubsub. See `t:on_packet/0`.
   * `ice_servers` - a list of `t:ExWebRTC.PeerConnection.Configuration.ice_server/0`,
   * `ice_ip_filter` - `t:ExICE.ICEAgent.ip_filter/0`,
   * `ice_port_range` - `t:Enumerable.t(non_neg_integer())/1`,
@@ -351,13 +360,17 @@ defmodule LiveExWebRTC.Publisher do
 
     case publisher do
       %Publisher{video_track_id: ^track_id} ->
+        packet =
+          if publisher.on_packet,
+            do: publisher.on_packet.(publisher.id, :video, packet, socket),
+            else: packet
+
         PubSub.broadcast(
           publisher.pubsub,
           "streams:video:#{publisher.id}",
           {:live_ex_webrtc, :video, packet}
         )
 
-        if publisher.on_packet, do: publisher.on_packet.(publisher.id, :video, packet, socket)
         {:noreply, socket}
 
       %Publisher{audio_track_id: ^track_id} ->
