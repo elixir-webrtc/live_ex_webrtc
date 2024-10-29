@@ -118,7 +118,7 @@ defmodule LiveExWebRTC.Player do
   * `publisher_id` - publisher id that this player is going to subscribe to.
   * `pubsub` - a pubsub that player live view will subscribe to for audio and video packets. See module doc for more.
   * `on_connected` - callback called when the underlying peer connection changes its state to the `:connected`
-  * `on_packet` - callback called for each audio and video RTP packet. Can be used to modifying the packet before sending via WebRTC to the other side.
+  * `on_packet` - callback called for each audio and video RTP packet. Can be used to modify the packet before sending via WebRTC to the other side.
   * `ice_servers` - a list of `t:ExWebRTC.PeerConnection.Configuration.ice_server/0`,
   * `ice_ip_filter` - `t:ExICE.ICEAgent.ip_filter/0`,
   * `ice_port_range` - `t:Enumerable.t(non_neg_integer())/1`,
@@ -155,7 +155,7 @@ defmodule LiveExWebRTC.Player do
       ice_port_range: Keyword.get(opts, :ice_port_range),
       audio_codecs: Keyword.get(opts, :audio_codecs),
       video_codecs: Keyword.get(opts, :video_codecs),
-      pc_genserver_opts: Keyword.get(opts, :pc_genserver_opts)
+      pc_genserver_opts: Keyword.get(opts, :pc_genserver_opts, [])
     }
 
     socket
