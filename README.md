@@ -12,7 +12,7 @@ In your `mix.exs`:
 ```elixir
 def deps do
   [
-    {:live_ex_webrtc, "~> 0.3.0"}
+    {:live_ex_webrtc, "~> 0.4.0"}
   ]
 end
 ```
