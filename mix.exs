@@ -42,7 +42,8 @@ defmodule LiveExWebrtc.MixProject do
     [
       {:phoenix_live_view, "~> 1.0"},
       {:jason, "~> 1.0"},
-      {:ex_webrtc, "~> 0.7.0"},
+      # {:ex_webrtc, "~> 0.7.0"},
+      {:ex_webrtc,  path: "~/git/w/w/main/", override: true},
       {:ex_doc, "~> 0.31.0", only: :dev, runtime: false}
     ]
   end
