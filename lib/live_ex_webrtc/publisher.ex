@@ -71,8 +71,8 @@ defmodule LiveExWebRTC.Publisher do
   alias ExWebRTC.{ICECandidate, PeerConnection, Recorder, SessionDescription}
   alias Phoenix.PubSub
 
-  @type on_connected() :: (publisher_id :: String.t(), recording_report :: map() -> any())
-  @type on_disconnected() :: (publisher_id :: String.t(), recording_report :: map() -> any())
+  @type on_connected() :: (publisher_id :: String.t() -> any())
+  @type on_disconnected() :: (publisher_id :: String.t() -> any())
 
   @type on_packet() ::
           (publisher_id :: String.t(),
@@ -93,7 +93,6 @@ defmodule LiveExWebRTC.Publisher do
             on_disconnected: nil,
             pubsub: nil,
             recorder: nil,
-            recording_report: nil,
             ice_servers: nil,
             ice_ip_filter: nil,
             ice_port_range: nil,
@@ -394,20 +393,18 @@ defmodule LiveExWebRTC.Publisher do
   def handle_info({:ex_webrtc, _pid, {:connection_state_change, :connected}}, socket) do
     %{publisher: pub} = socket.assigns
 
-    recording_report =
-      if pub.recorder do
-        [
-          %{kind: :audio, receiver: %{track: audio_track}},
-          %{kind: :video, receiver: %{track: video_track}}
-        ] = PeerConnection.get_transceivers(pub.pc)
+    if pub.recorder do
+      [
+        %{kind: :audio, receiver: %{track: audio_track}},
+        %{kind: :video, receiver: %{track: video_track}}
+      ] = PeerConnection.get_transceivers(pub.pc)
 
-        {:ok, report} = Recorder.add_tracks(pub.recorder, [audio_track, video_track])
-        report
-      end
+      Recorder.add_tracks(pub.recorder, [audio_track, video_track])
+    end
 
-    if pub.on_connected, do: pub.on_connected.(pub.id, recording_report)
+    if pub.on_connected, do: pub.on_connected.(pub.id)
 
-    {:noreply, assign(socket, publisher: %Publisher{socket.assigns.publisher | recording_report: recording_report})}
+    {:noreply, socket}
   end
 
   @impl true
@@ -422,8 +419,7 @@ defmodule LiveExWebRTC.Publisher do
     if pid == pub.pc do
       if pub.recorder, do: Recorder.end_tracks(pub.recorder, [pub.audio_track_id, pub.video_track_id])
 
-      # XXX maybe override recording_report, or do something else entirely...
-      if pub.on_disconnected, do: pub.on_disconnected.(pub.id, pub.recording_report)
+      if pub.on_disconnected, do: pub.on_disconnected.(pub.id)
     end
 
     {:noreply, socket}
