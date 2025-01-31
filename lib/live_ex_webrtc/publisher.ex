@@ -129,7 +129,7 @@ defmodule LiveExWebRTC.Publisher do
   * `id` - publisher id. This is typically your user id (if there is users database).
   It is used to identify live view and generated HTML elements.
   * `pubsub` - a pubsub that publisher live view will use for broadcasting audio and video packets received from a browser. See module doc for more.
-  * `recorder` - XXX WRITEME `t:GenServer.server/0`,
+  * `recorder` - WRITEME `t:GenServer.server/0`,
   * `on_connected` - callback called when the underlying peer connection changes its state to the `:connected`. See `t:on_connected/0`.
   * `on_disconnected` - callback called when the underlying peer connection process terminates. See `t:on_disconnected/0`.
   * `on_packet` - callback called for each audio and video RTP packet. Can be used to modify the packet before publishing it on a pubsub. See `t:on_packet/0`.
@@ -417,7 +417,8 @@ defmodule LiveExWebRTC.Publisher do
     %{publisher: pub} = socket.assigns
 
     if pid == pub.pc do
-      if pub.recorder, do: Recorder.end_tracks(pub.recorder, [pub.audio_track_id, pub.video_track_id])
+      if pub.recorder,
+        do: Recorder.end_tracks(pub.recorder, [pub.audio_track_id, pub.video_track_id])
 
       if pub.on_disconnected, do: pub.on_disconnected.(pub.id)
     end
