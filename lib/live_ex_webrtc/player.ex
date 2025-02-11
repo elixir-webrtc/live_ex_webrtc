@@ -59,6 +59,7 @@ defmodule LiveExWebRTC.Player do
   '''
   use Phoenix.LiveView
 
+  require Logger
   alias LiveExWebRTC.Player
 
   @type on_connected() :: (publisher_id :: String.t() -> any())
@@ -87,7 +88,7 @@ defmodule LiveExWebRTC.Player do
             video_codecs: nil,
             pc_genserver_opts: nil
 
-  alias ExWebRTC.{ICECandidate, MediaStreamTrack, PeerConnection, SessionDescription}
+  alias ExWebRTC.{ICECandidate, MediaStreamTrack, PeerConnection, RTP.Munger, SessionDescription}
   alias ExRTCP.Packet.PayloadFeedback.PLI
   alias Phoenix.PubSub
 
@@ -193,7 +194,14 @@ defmodule LiveExWebRTC.Player do
   @impl true
   def render(assigns) do
     ~H"""
+    <div class="">
     <video id={@player.id} phx-hook="Player" class={@class} controls autoplay muted></video>
+    <select id="lexp-video-quality">
+        <option value="h" selected>High</option>
+        <option value="m">Medium</option>
+        <option value="l">Low</option>
+      </select>
+    </div>
     """
   end
 
@@ -208,7 +216,12 @@ defmodule LiveExWebRTC.Player do
       socket =
         receive do
           {^ref, %Player{publisher_id: ^pub_id} = player} ->
-            assign(socket, player: player)
+            assign(socket,
+              player: player,
+              munger: Munger.new(90_000),
+              layer: "h",
+              target_layer: "h"
+            )
         after
           5000 -> exit(:timeout)
         end
@@ -221,9 +234,9 @@ defmodule LiveExWebRTC.Player do
 
   @impl true
   def handle_info({:ex_webrtc, _pid, {:connection_state_change, :connected}}, socket) do
-    %{player: player} = socket.assigns
+    %{player: player, layer: layer} = socket.assigns
     PubSub.subscribe(player.pubsub, "streams:audio:#{player.publisher_id}")
-    PubSub.subscribe(player.pubsub, "streams:video:#{player.publisher_id}")
+    PubSub.subscribe(player.pubsub, "streams:video:#{player.publisher_id}:#{layer}")
     broadcast_keyframe_req(socket)
     if player.on_connected, do: player.on_connected.(player.publisher_id)
 
@@ -256,7 +269,7 @@ defmodule LiveExWebRTC.Player do
     {:noreply, socket}
   end
 
-  def handle_info({:live_ex_webrtc, :video, packet}, socket) do
+  def handle_info({:live_ex_webrtc, :video, rid, packet}, socket) do
     %{player: player} = socket.assigns
 
     packet =
@@ -264,8 +277,44 @@ defmodule LiveExWebRTC.Player do
         do: player.on_packet.(player.publisher_id, :video, packet),
         else: packet
 
-    PeerConnection.send_rtp(player.pc, player.video_track_id, packet)
-    {:noreply, socket}
+    cond do
+      rid == socket.assigns.layer ->
+        {packet, munger} = Munger.munge(socket.assigns.munger, packet)
+        socket = assign(socket, munger: munger)
+        :ok = PeerConnection.send_rtp(player.pc, player.video_track_id, packet)
+        {:noreply, socket}
+
+      rid == socket.assigns.target_layer ->
+        if ExWebRTC.RTP.H264.keyframe?(packet) == true do
+          munger = Munger.update(socket.assigns.munger)
+          {packet, munger} = Munger.munge(munger, packet)
+
+          PeerConnection.send_rtp(player.pc, player.video_track_id, packet)
+
+          PubSub.unsubscribe(
+            socket.assigns.player.pubsub,
+            "streams:video:#{player.publisher_id}:#{socket.assigns.layer}"
+          )
+
+          flush_layer(socket.assigns.layer)
+
+          socket = assign(socket, munger: munger, layer: rid)
+          {:noreply, socket}
+        else
+          {:noreply, socket}
+        end
+
+      true ->
+        # this should never happen
+        Logger.warning("unexpected unsubscribe")
+
+        PubSub.unsubscribe(
+          socket.assigns.player.pubsub,
+          "streams:video:#{player.publisher_id}:#{rid}"
+        )
+
+        {:noreply, socket}
+    end
   end
 
   @impl true
@@ -334,6 +383,22 @@ defmodule LiveExWebRTC.Player do
     end
   end
 
+  @impl true
+  def handle_event("layer", layer, socket) when layer in ["l", "m", "h"] do
+    if socket.assigns.layer == layer do
+      {:noreply, socket}
+    else
+      PubSub.subscribe(
+        socket.assigns.player.pubsub,
+        "streams:video:#{socket.assigns.player.publisher_id}:#{layer}"
+      )
+
+      socket = assign(socket, target_layer: layer)
+      broadcast_keyframe_req(socket)
+      {:noreply, socket}
+    end
+  end
+
   defp spawn_peer_connection(socket) do
     %{player: player} = socket.assigns
 
@@ -363,10 +428,20 @@ defmodule LiveExWebRTC.Player do
   defp broadcast_keyframe_req(socket) do
     %{player: player} = socket.assigns
 
+    layer = socket.assigns.target_layer || socket.assigns.layer
+
     PubSub.broadcast(
       player.pubsub,
       "publishers:#{player.publisher_id}",
-      {:live_ex_webrtc, :keyframe_req}
+      {:live_ex_webrtc, :keyframe_req, layer}
     )
+  end
+
+  defp flush_layer(layer) do
+    receive do
+      {:live_ex_webrtc, :video, ^layer, _packet} -> flush_layer(layer)
+    after
+      0 -> :ok
+    end
   end
 end
