@@ -86,8 +86,8 @@ defmodule LiveExWebRTC.Publisher do
   defstruct id: nil,
             pc: nil,
             streaming?: false,
-            audio_track_id: nil,
-            video_track_id: nil,
+            audio_track: nil,
+            video_track: nil,
             on_packet: nil,
             on_connected: nil,
             pubsub: nil,
@@ -352,12 +352,20 @@ defmodule LiveExWebRTC.Publisher do
 
   @impl true
   def handle_info({:live_ex_webrtc, :keyframe_req, layer}, socket) do
-    # FIXME consider non-simulcast case
     %{publisher: publisher} = socket.assigns
 
+    # Non-simulcast tracks are always sent with "h" identifier
+    # Hence, when we receive a keyframe request for "h", we must
+    # check whether it's simulcast track or not.
+    layer =
+      if layer == "h" and publisher.video_track.rids == nil do
+        nil
+      else
+        layer
+      end
+
     if pc = publisher.pc do
-      Logger.warning("Sending keyframe request: #{layer}")
-      :ok = PeerConnection.send_pli(pc, publisher.video_track_id, layer)
+      :ok = PeerConnection.send_pli(pc, publisher.video_track.id, layer)
     end
 
     {:noreply, socket}
@@ -368,7 +376,7 @@ defmodule LiveExWebRTC.Publisher do
     %{publisher: publisher} = socket.assigns
 
     case publisher do
-      %Publisher{video_track_id: ^track_id} ->
+      %Publisher{video_track: video_track} when video_track.id == track_id ->
         packet =
           if publisher.on_packet,
             do: publisher.on_packet.(publisher.id, :video, packet, socket),
@@ -383,7 +391,7 @@ defmodule LiveExWebRTC.Publisher do
 
         {:noreply, socket}
 
-      %Publisher{audio_track_id: ^track_id} ->
+      %Publisher{audio_track: audio_track} when audio_track.id == track_id ->
         PubSub.broadcast(
           publisher.pubsub,
           "streams:audio:#{publisher.id}",
@@ -447,8 +455,8 @@ defmodule LiveExWebRTC.Publisher do
     new_publisher = %Publisher{
       publisher
       | pc: pc,
-        audio_track_id: audio_track.id,
-        video_track_id: video_track.id
+        audio_track: audio_track,
+        video_track: video_track
     }
 
     {:noreply,

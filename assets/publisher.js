@@ -238,7 +238,6 @@ export function createPublisherHook(iceServers = []) {
 
       let statsTimestamp;
       stats.forEach((report) => {
-        console.log(report);
         if (!statsTimestamp) statsTimestamp = report.timestamp;
 
         if (report.type === "outbound-rtp" && report.kind === "video") {
