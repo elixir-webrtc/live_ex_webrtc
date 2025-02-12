@@ -110,10 +110,13 @@ defmodule LiveExWebRTC.Player do
   """
   def live_render(assigns) do
     ~H"""
-    <%= live_render(@socket, __MODULE__, id: "#{@player.id}-lv", session: %{
-      "publisher_id" => @player.publisher_id,
-      "class" => @class
-    }) %>
+    {live_render(@socket, __MODULE__,
+      id: "#{@player.id}-lv",
+      session: %{
+        "publisher_id" => @player.publisher_id,
+        "class" => @class
+      }
+    )}
     """
   end
 
@@ -195,8 +198,8 @@ defmodule LiveExWebRTC.Player do
   def render(assigns) do
     ~H"""
     <div class="">
-    <video id={@player.id} phx-hook="Player" class={@class} controls autoplay muted></video>
-    <select id="lexp-video-quality">
+      <video id={@player.id} phx-hook="Player" class={@class} controls autoplay muted></video>
+      <select id="lexp-video-quality">
         <option value="h" selected>High</option>
         <option value="m">Medium</option>
         <option value="l">Low</option>

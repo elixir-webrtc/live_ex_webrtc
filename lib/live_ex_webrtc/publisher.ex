@@ -68,6 +68,9 @@ defmodule LiveExWebRTC.Publisher do
   use Phoenix.LiveView
 
   require Logger
+
+  import LiveExWebRTC.CoreComponents
+
   alias LiveExWebRTC.Publisher
   alias ExWebRTC.{ICECandidate, PeerConnection, SessionDescription}
   alias Phoenix.PubSub
@@ -114,7 +117,10 @@ defmodule LiveExWebRTC.Publisher do
   """
   def live_render(assigns) do
     ~H"""
-    <%= live_render(@socket, __MODULE__, id: "#{@publisher.id}-lv", session: %{"publisher_id" => @publisher.id}) %>
+    {live_render(@socket, __MODULE__,
+      id: "#{@publisher.id}-lv",
+      session: %{"publisher_id" => @publisher.id}
+    )}
     """
   end
 
@@ -193,12 +199,27 @@ defmodule LiveExWebRTC.Publisher do
     ~H"""
     <div id={@publisher.id} phx-hook="Publisher" class="h-full w-full flex justify-between gap-6">
       <div class="w-full flex flex-col">
-        <div id="lex-static" class="w-full flex flex-col" phx-update="ignore">
-          <details>
-            <summary class="font-bold text-[#0d0d0d] py-2.5">Devices</summary>
-            <div class="text-[#606060] flex flex-col gap-6 py-2.5">
+        <div class="w-full flex flex-col gap-4">
+          <div
+            id="lex-media-devices-wrapper"
+            phx-click={
+              Phoenix.LiveView.JS.toggle_class("hidden", to: "#lex-media-devices")
+              |> Phoenix.LiveView.JS.toggle_class("rotate-180",
+                to: "#lex-media-devices-wrapper .chevron"
+              )
+            }
+            phx-update="ignore"
+            class="px-4 py-3 cursor-pointer bg-brand/10 rounded-md border border-brand/30"
+          >
+            <div class="flex items-center justify-between">
+              <div class="font-bold text-[#0d0d0d] py-2.5">Devices</div>
+              <div class="chevron transition-all duration-300">
+                <.icon name="hero-chevron-down" />
+              </div>
+            </div>
+            <div id="lex-media-devices" class="hidden text-[#606060] flex flex-col gap-6 py-2.5">
               <div class="flex gap-2.5 items-center">
-                <label for="lex-audio-devices" class="font-medium">Audio Device</label>
+                <label for="lex-audio-devices" class="">Audio Device</label>
                 <select
                   id="lex-audio-devices"
                   class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
@@ -214,10 +235,25 @@ defmodule LiveExWebRTC.Publisher do
                 </select>
               </div>
             </div>
-          </details>
-          <details>
-            <summary class="font-bold text-[#0d0d0d] py-2.5">Audio Settings</summary>
-            <div class="text-[#606060] flex flex-col gap-6 py-2.5">
+          </div>
+          <div
+            id="lex-audio-settings-wrapper"
+            phx-click={
+              Phoenix.LiveView.JS.toggle_class("hidden", to: "#lex-audio-settings")
+              |> Phoenix.LiveView.JS.toggle_class("rotate-180",
+                to: "#lex-audio-settings-wrapper .chevron"
+              )
+            }
+            phx-update="ignore"
+            class="px-4 py-3 cursor-pointer bg-brand/10 rounded-md border border-brand/30"
+          >
+            <div class="flex items-center justify-between">
+              <div class="font-bold text-[#0d0d0d] py-2.5">Audio Settings</div>
+              <div class="chevron transition-all duration-300">
+                <.icon name="hero-chevron-down" />
+              </div>
+            </div>
+            <div id="lex-audio-settings" class="hidden text-[#606060] flex flex-col gap-6 py-2.5">
               <div class="flex gap-2.5 items-center">
                 <label for="lex-echo-cancellation">Echo Cancellation</label>
                 <input type="checkbox" id="lex-echo-cancellation" class="rounded-full" checked />
@@ -230,12 +266,38 @@ defmodule LiveExWebRTC.Publisher do
                 <label for="lex-noise-suppression">Noise Suppression</label>
                 <input type="checkbox" id="lex-noise-suppression" class="rounded-full" checked />
               </div>
+              <button
+                id="lex-audio-apply-button"
+                class="rounded-lg px-10 py-2.5 bg-brand disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold"
+                disabled
+              >
+                Apply
+              </button>
             </div>
-            <button id="lex-audio-apply-button" class="rounded-lg px-10 py-2.5 bg-brand disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold" disabled>Apply</button>
-          </details>
-          <details>
-            <summary class="font-bold text-[#0d0d0d] py-2.5">Video Settings</summary>
-            <div class="text-[#606060] flex flex-col gap-6 py-2.5">
+          </div>
+          <div
+            id="lex-video-settings-wrapper"
+            phx-click={
+              Phoenix.LiveView.JS.toggle_class("hidden",
+                to: "#lex-video-settings"
+              )
+              |> Phoenix.LiveView.JS.toggle_class("rotate-180",
+                to: "#lex-video-settings-wrapper .chevron"
+              )
+            }
+            phx-update="ignore"
+            class="px-4 py-3 cursor-pointer bg-brand/10 rounded-md border border-brand/30"
+          >
+            <div class="flex items-center justify-between">
+              <div class="font-bold text-[#0d0d0d] py-2.5">Video Settings</div>
+              <div class="chevron transition-all duration-300">
+                <.icon name="hero-chevron-down" />
+              </div>
+            </div>
+            <div
+              id="lex-video-settings"
+              class="hidden transition-all duration-700 text-[#606060] flex flex-col gap-6 py-2.5"
+            >
               <div id="lex-resolution" class="flex gap-2.5 items-center">
                 <label for="lex-width">Width</label>
                 <input
@@ -272,16 +334,28 @@ defmodule LiveExWebRTC.Publisher do
               </div>
               <div class="flex gap-2.5 items-center">
                 <label for="lex-simulcast">Simulcast</label>
-                <input type="checkbox" id="lex-simulcast" class="rounded-full" checked/>
+                <input type="checkbox" id="lex-simulcast" class="rounded-full" checked />
               </div>
+              <button
+                id="lex-video-apply-button"
+                class="rounded-lg px-10 py-2.5 bg-brand disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold"
+                disabled
+              >
+                Apply
+              </button>
             </div>
-            <button id="lex-video-apply-button" class="rounded-lg px-10 py-2.5 bg-brand disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold" disabled>Apply</button>
-          </details>
+          </div>
           <div id="lex-videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 pt-2.5">
-            <video id="lex-preview-player" class="m-auto rounded-lg bg-black h-full" autoplay controls muted>
+            <video
+              id="lex-preview-player"
+              class="m-auto rounded-lg bg-black h-full"
+              autoplay
+              controls
+              muted
+            >
             </video>
           </div>
-          <div id="lex-stats", class="flex justify-between w-full text-[#606060] ">
+          <div id="lex-stats" , class="flex justify-between w-full text-[#606060] ">
             <div class="flex p-1 gap-4">
               <div class="flex flex-col">
                 <label for="lex-audio-bitrate">Audio Bitrate (kbps): </label>
@@ -301,8 +375,7 @@ defmodule LiveExWebRTC.Publisher do
               </div>
             </div>
             <div class="p-1 flex items-center">
-              <div id="lex-status" class="w-3 h-3 rounded-full bg-red-500">
-            </div>
+              <div id="lex-status" class="w-3 h-3 rounded-full bg-red-500"></div>
             </div>
           </div>
         </div>
