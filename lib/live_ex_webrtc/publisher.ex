@@ -89,10 +89,7 @@ defmodule LiveExWebRTC.Publisher do
   defstruct id: nil,
             pc: nil,
             streaming?: false,
-            form:
-              to_form(%{"simulcast" => "false"},
-                id: "lex-form"
-              ),
+            simulcast_supported?: nil,
             audio_track: nil,
             video_track: nil,
             on_packet: nil,
@@ -200,6 +197,19 @@ defmodule LiveExWebRTC.Publisher do
 
   @impl true
   def render(assigns) do
+    assigns =
+      assign_new(assigns, :simulcast_checkbox_enabled, fn ->
+        if assigns.publisher.streaming? do
+          false
+        else
+          if assigns.publisher.simulcast_supported? do
+            true
+          else
+            false
+          end
+        end
+      end)
+
     ~H"""
     <div id={@publisher.id} phx-hook="Publisher" class="h-full w-full flex justify-between gap-6">
       <div class="w-full flex flex-col">
@@ -352,14 +362,13 @@ defmodule LiveExWebRTC.Publisher do
                   />
                 </div>
               </div>
-              <.form for={@publisher.form} phx-change="change_simulcast" phx-update="replace">
-                <.input
-                  type="checkbox"
-                  field={@publisher.form[:simulcast]}
-                  label="Simulcast"
-                  {if @publisher.streaming?, do: %{"disabled" => true}, else: %{"disabled" => false}}
-                />
-              </.form>
+              <.input
+                type="checkbox"
+                name="simulcast"
+                label="Simulcast"
+                {if @simulcast_checkbox_enabled, do: %{"disabled" => "false"}, else: %{"disabled" => true}}
+                errors={if @simulcast_checkbox_enabled, do: [], else: ["Simulcast requires server to run with H264 codec"]}
+              />
             </div>
           </div>
           <div id="lex-videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 pt-2.5">
@@ -429,7 +438,10 @@ defmodule LiveExWebRTC.Publisher do
 
       socket =
         receive do
-          {^ref, %Publisher{id: ^pub_id} = publisher} -> assign(socket, publisher: publisher)
+          {^ref, %Publisher{id: ^pub_id} = publisher} ->
+            codecs = publisher.video_codecs || PeerConnection.Configuration.default_video_codecs()
+            publisher = %Publisher{publisher | simulcast_supported?: simulcast_supported?(codecs)}
+            assign(socket, publisher: publisher)
         after
           5000 -> exit(:timeout)
         end
@@ -587,39 +599,6 @@ defmodule LiveExWebRTC.Publisher do
 
         {:noreply, socket}
     end
-  end
-
-  @impl true
-  def handle_event("change_simulcast", %{"simulcast" => "true"} = params, socket) do
-    codecs =
-      socket.assigns.publisher.video_codecs || PeerConnection.Configuration.default_video_codecs()
-
-    publisher =
-      if simulcast_supported?(codecs) == true do
-        %Publisher{socket.assigns.publisher | form: to_form(params, id: "lex-form")}
-      else
-        # FIXME this doesn't work when simulcast is not supported and user re-check the checkbox
-        form =
-          to_form(socket.assigns.publisher.form,
-            id: "lex-form",
-            errors: [
-              simulcast: {"Server must be configured with H264 codec to support simulcast", []}
-            ]
-          )
-
-        %Publisher{socket.assigns.publisher | form: form}
-      end
-
-    socket = assign(socket, publisher: publisher)
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event("change_simulcast", %{"simulcast" => "false"} = params, socket) do
-    form = to_form(params, id: "lex-form")
-    publisher = %Publisher{socket.assigns.publisher | form: form}
-    socket = assign(socket, publisher: publisher)
-    {:noreply, socket}
   end
 
   defp spawn_peer_connection(socket) do
