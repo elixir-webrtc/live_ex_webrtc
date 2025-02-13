@@ -309,49 +309,56 @@ defmodule LiveExWebRTC.Publisher do
               id="lex-video-settings"
               class="hidden transition-all duration-700 text-[#606060] flex flex-col gap-6 px-4 pb-3"
             >
-              <div id="lex-resolution" class="flex gap-2.5 items-center">
-                <label for="lex-width">Width</label>
-                <input
-                  type="text"
-                  id="lex-width"
-                  value="1280"
-                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
-                />
-                <label for="lex-height">Height</label>
-                <input
-                  type="text"
-                  id="lex-height"
-                  value="720"
-                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
-                />
-              </div>
-              <div class="flex gap-2.5 items-center">
-                <label for="lex-fps">FPS</label>
-                <input
-                  type="text"
-                  id="lex-fps"
-                  value="24"
-                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
-                />
-              </div>
-              <button
-                id="lex-video-apply-button"
-                class="rounded-lg px-10 py-2.5 bg-brand disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold"
-                disabled
-              >
-                Apply
-              </button>
-              <div class="flex gap-2.5 items-center">
-                <label for="lex-bitrate">Max Bitrate (kbps)</label>
-                <input
-                  type="text"
-                  id="lex-bitrate"
-                  value="1500"
-                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
-                />
+              <div id="lex-video-static" phx-update="ignore" class="flex flex-col gap-6">
+                <div id="lex-resolution" class="flex gap-2.5 items-center">
+                  <label for="lex-width">Width</label>
+                  <input
+                    type="text"
+                    id="lex-width"
+                    value="1280"
+                    class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+                  />
+                  <label for="lex-height">Height</label>
+                  <input
+                    type="text"
+                    id="lex-height"
+                    value="720"
+                    class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+                  />
+                </div>
+                <div class="flex gap-2.5 items-center">
+                  <label for="lex-fps">FPS</label>
+                  <input
+                    type="text"
+                    id="lex-fps"
+                    value="24"
+                    class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+                  />
+                </div>
+                <button
+                  id="lex-video-apply-button"
+                  class="rounded-lg px-10 py-2.5 bg-brand disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold"
+                  disabled
+                >
+                  Apply
+                </button>
+                <div class="flex gap-2.5 items-center">
+                  <label for="lex-bitrate">Max Bitrate (kbps)</label>
+                  <input
+                    type="text"
+                    id="lex-bitrate"
+                    value="1500"
+                    class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+                  />
+                </div>
               </div>
               <.form for={@publisher.form} phx-change="change_simulcast" phx-update="replace">
-                <.input type="checkbox" field={@publisher.form[:simulcast]} label="Simulcast" />
+                <.input
+                  type="checkbox"
+                  field={@publisher.form[:simulcast]}
+                  label="Simulcast"
+                  {if @publisher.streaming?, do: %{"disabled" => true}, else: %{"disabled" => false}}
+                />
               </.form>
             </div>
           </div>
@@ -583,18 +590,34 @@ defmodule LiveExWebRTC.Publisher do
   end
 
   @impl true
-  def handle_event("change_simulcast", params, socket) do
-    publisher = %Publisher{
-      socket.assigns.publisher
-      | form:
-          to_form(params,
+  def handle_event("change_simulcast", %{"simulcast" => "true"} = params, socket) do
+    codecs =
+      socket.assigns.publisher.video_codecs || PeerConnection.Configuration.default_video_codecs()
+
+    publisher =
+      if simulcast_supported?(codecs) == true do
+        %Publisher{socket.assigns.publisher | form: to_form(params, id: "lex-form")}
+      else
+        # FIXME this doesn't work when simulcast is not supported and user re-check the checkbox
+        form =
+          to_form(socket.assigns.publisher.form,
             id: "lex-form",
             errors: [
               simulcast: {"Server must be configured with H264 codec to support simulcast", []}
             ]
           )
-    }
 
+        %Publisher{socket.assigns.publisher | form: form}
+      end
+
+    socket = assign(socket, publisher: publisher)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("change_simulcast", %{"simulcast" => "false"} = params, socket) do
+    form = to_form(params, id: "lex-form")
+    publisher = %Publisher{socket.assigns.publisher | form: form}
     socket = assign(socket, publisher: publisher)
     {:noreply, socket}
   end
@@ -623,5 +646,21 @@ defmodule LiveExWebRTC.Publisher do
     after
       1000 -> :ok
     end
+  end
+
+  defp simulcast_supported?(codecs) do
+    Enum.any?(codecs, fn codec ->
+      fmtp = codec.sdp_fmtp_line
+
+      fmtp_correct =
+        if fmtp == nil do
+          false
+        else
+          fmtp.level_asymmetry_allowed == true and fmtp.packetization_mode == 0 and
+            fmtp.profile_level_id == 0x42E01F
+        end
+
+      codec.mime_type == "video/H264" and fmtp_correct == true
+    end)
   end
 end
