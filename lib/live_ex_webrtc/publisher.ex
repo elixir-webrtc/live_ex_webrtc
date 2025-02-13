@@ -89,6 +89,10 @@ defmodule LiveExWebRTC.Publisher do
   defstruct id: nil,
             pc: nil,
             streaming?: false,
+            form:
+              to_form(%{"simulcast" => "false"},
+                id: "lex-form"
+              ),
             audio_track: nil,
             video_track: nil,
             on_packet: nil,
@@ -332,10 +336,6 @@ defmodule LiveExWebRTC.Publisher do
                   class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
                 />
               </div>
-              <div class="flex gap-2.5 items-center">
-                <label for="lex-simulcast">Simulcast</label>
-                <input type="checkbox" id="lex-simulcast" class="rounded-full" checked />
-              </div>
               <button
                 id="lex-video-apply-button"
                 class="rounded-lg px-10 py-2.5 bg-brand disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold"
@@ -343,6 +343,9 @@ defmodule LiveExWebRTC.Publisher do
               >
                 Apply
               </button>
+              <.form for={@publisher.form} phx-change="change_simulcast" phx-update="replace">
+                <.input type="checkbox" field={@publisher.form[:simulcast]} label="Simulcast" />
+              </.form>
             </div>
           </div>
           <div id="lex-videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 pt-2.5">
@@ -570,6 +573,23 @@ defmodule LiveExWebRTC.Publisher do
 
         {:noreply, socket}
     end
+  end
+
+  @impl true
+  def handle_event("change_simulcast", params, socket) do
+    publisher = %Publisher{
+      socket.assigns.publisher
+      | form:
+          to_form(params,
+            id: "lex-form",
+            errors: [
+              simulcast: {"Server must be configured with H264 codec to support simulcast", []}
+            ]
+          )
+    }
+
+    socket = assign(socket, publisher: publisher)
+    {:noreply, socket}
   end
 
   defp spawn_peer_connection(socket) do
