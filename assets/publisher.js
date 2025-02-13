@@ -95,6 +95,7 @@ export function createPublisherHook(iceServers = []) {
       view.audioApplyButton.disabled = true;
       view.videoApplyButton.disabled = true;
       view.bitrate.disabled = true;
+      view.simulcast.disabled = true;
     },
 
     enableControls(view) {
@@ -109,6 +110,7 @@ export function createPublisherHook(iceServers = []) {
       view.audioApplyButton.disabled = false;
       view.videoApplyButton.disabled = false;
       view.bitrate.disabled = false;
+      view.simulcast.disabled = false;
     },
 
     async findDevices(view) {

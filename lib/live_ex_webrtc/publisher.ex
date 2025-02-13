@@ -197,19 +197,6 @@ defmodule LiveExWebRTC.Publisher do
 
   @impl true
   def render(assigns) do
-    assigns =
-      assign_new(assigns, :simulcast_checkbox_enabled, fn ->
-        if assigns.publisher.streaming? do
-          false
-        else
-          if assigns.publisher.simulcast_supported? do
-            true
-          else
-            false
-          end
-        end
-      end)
-
     ~H"""
     <div id={@publisher.id} phx-hook="Publisher" class="h-full w-full flex justify-between gap-6">
       <div class="w-full flex flex-col">
@@ -361,14 +348,24 @@ defmodule LiveExWebRTC.Publisher do
                     class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
                   />
                 </div>
+                <%= if @publisher.simulcast_supported? do %>
+                  <div class="flex gap-2.5 items-center">
+                    <label for="lex-simulcast">Simulcast</label>
+                    <input type="checkbox" id="lex-simulcast" class="rounded-full" />
+                  </div>
+                <% else %>
+                  <div class="flex flex-col gap-2">
+                    <div class="flex gap-2.5 items-center">
+                      <label for="lex-simulcast">Simulcast</label>
+                      <input type="checkbox" id="lex-simulcast" class="rounded-full bg-gray-300" disabled />
+                    </div>
+                    <p class="flex gap-2 text-sm leading-6 text-rose-600">
+                      <.icon name="hero-exclamation-circle-mini" class="mt-0.5 h-5 w-5 flex-none" />
+                      Simulcast requires server to be configured with H264 codec
+                    </p>
+                  </div>
+                <% end %>
               </div>
-              <.input
-                type="checkbox"
-                name="simulcast"
-                label="Simulcast"
-                {if @simulcast_checkbox_enabled, do: %{"disabled" => "false"}, else: %{"disabled" => true}}
-                errors={if @simulcast_checkbox_enabled, do: [], else: ["Simulcast requires server to run with H264 codec"]}
-              />
             </div>
           </div>
           <div id="lex-videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 pt-2.5">
@@ -635,7 +632,7 @@ defmodule LiveExWebRTC.Publisher do
         if fmtp == nil do
           false
         else
-          fmtp.level_asymmetry_allowed == true and fmtp.packetization_mode == 0 and
+          fmtp.level_asymmetry_allowed == true and fmtp.packetization_mode == 1 and
             fmtp.profile_level_id == 0x42E01F
         end
 
