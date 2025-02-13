@@ -1,6 +1,11 @@
 export function createPlayerHook(iceServers = []) {
   return {
     async mounted() {
+      this.videoQuality = document.getElementById("lexp-video-quality");
+      this.videoQuality.onchange = () => {
+        this.pushEventTo(this.el, "layer", this.videoQuality.value);
+      };
+
       this.pc = new RTCPeerConnection({ iceServers: iceServers });
 
       this.pc.onicecandidate = (ev) => {
