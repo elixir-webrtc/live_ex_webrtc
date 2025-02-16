@@ -71,6 +71,7 @@ defmodule LiveExWebRTC.Publisher do
 
   import LiveExWebRTC.CoreComponents
 
+  alias ExWebRTC.RTPCodecParameters
   alias LiveExWebRTC.Publisher
   alias ExWebRTC.{ICECandidate, PeerConnection, SessionDescription}
   alias Phoenix.PubSub
@@ -357,11 +358,16 @@ defmodule LiveExWebRTC.Publisher do
                   <div class="flex flex-col gap-2">
                     <div class="flex gap-2.5 items-center">
                       <label for="lex-simulcast">Simulcast</label>
-                      <input type="checkbox" id="lex-simulcast" class="rounded-full bg-gray-300" disabled />
+                      <input
+                        type="checkbox"
+                        id="lex-simulcast"
+                        class="rounded-full bg-gray-300"
+                        disabled
+                      />
                     </div>
                     <p class="flex gap-2 text-sm leading-6 text-rose-600">
                       <.icon name="hero-exclamation-circle-mini" class="mt-0.5 h-5 w-5 flex-none" />
-                      Simulcast requires server to be configured with H264 codec
+                      Simulcast requires server to be configured with H264 and/or VP8 codec
                     </p>
                   </div>
                 <% end %>
@@ -625,18 +631,16 @@ defmodule LiveExWebRTC.Publisher do
   end
 
   defp simulcast_supported?(codecs) do
-    Enum.any?(codecs, fn codec ->
-      fmtp = codec.sdp_fmtp_line
+    Enum.any?(codecs, fn
+      %RTPCodecParameters{mime_type: "video/VP8"} ->
+        true
 
-      fmtp_correct =
-        if fmtp == nil do
-          false
-        else
-          fmtp.level_asymmetry_allowed == true and fmtp.packetization_mode == 1 and
-            fmtp.profile_level_id == 0x42E01F
-        end
+      %RTPCodecParameters{mime_type: "video/H264", sdp_fmtp_line: fmtp} when fmtp != nil ->
+        fmtp.level_asymmetry_allowed == true and fmtp.packetization_mode == 1 and
+          fmtp.profile_level_id == 0x42E01F
 
-      codec.mime_type == "video/H264" and fmtp_correct == true
+      _ ->
+        false
     end)
   end
 end
