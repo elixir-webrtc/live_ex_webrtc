@@ -77,6 +77,8 @@ defmodule LiveExWebRTC.Player do
 
   defstruct id: nil,
             publisher_id: nil,
+            publisher_audio_track: nil,
+            publisher_video_track: nil,
             pubsub: nil,
             pc: nil,
             audio_track_id: nil,
@@ -92,6 +94,7 @@ defmodule LiveExWebRTC.Player do
             munger: nil,
             layer: nil,
             target_layer: nil,
+            video_layers: [{"h", "high"}],
             # codec that will be used for video sending
             video_send_codec: nil
 
@@ -207,9 +210,7 @@ defmodule LiveExWebRTC.Player do
     <div class="">
       <video id={@player.id} phx-hook="Player" class={@class} controls autoplay muted></video>
       <select id="lexp-video-quality">
-        <option value="h" selected>High</option>
-        <option value="m">Medium</option>
-        <option value="l">Low</option>
+        <option :for={{id, layer} <- @publisher.video_layers} value={id}>{layer}</option>
       </select>
     </div>
     """
@@ -227,6 +228,7 @@ defmodule LiveExWebRTC.Player do
         receive do
           {^ref, %Player{publisher_id: ^pub_id} = player} ->
             player = %Player{player | layer: "h", target_layer: "h"}
+            PubSub.subscribe(player.pubsub, "streams:info:#{player.publisher_id}")
             assign(socket, player: player)
         after
           5000 -> exit(:timeout)
@@ -268,6 +270,41 @@ defmodule LiveExWebRTC.Player do
   end
 
   def handle_info({:ex_webrtc, _pid, _}, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:live_ex_webrtc, :info, publisher_audio_track, publisher_video_track}, socket) do
+    %{player: player} = socket.assigns
+
+    player =
+      case player do
+        %Player{publisher_audio_track: nil, publisher_video_track: nil} ->
+          video_layers = (publisher_video_track && publisher_video_track.rids) || ["h"]
+
+          video_layers =
+            Enum.map(video_layers, fn
+              "h" -> {"h", "high"}
+              "m" -> {"m", "medium"}
+              "l" -> {"l", "low"}
+            end)
+
+          %Player{
+            player
+            | publisher_audio_track: publisher_audio_track,
+              publisher_video_track: publisher_video_track,
+              video_layers: video_layers
+          }
+
+        %Player{
+          publisher_audio_track: ^publisher_audio_track,
+          publisher_video_track: ^publisher_video_track
+        } ->
+          player
+      end
+
+    socket = assign(socket, :player, player)
+
     {:noreply, socket}
   end
 

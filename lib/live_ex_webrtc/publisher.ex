@@ -521,6 +521,21 @@ defmodule LiveExWebRTC.Publisher do
   end
 
   @impl true
+  def handle_info(:streams_info, socket) do
+    %{publisher: publisher} = socket.assigns
+
+    PubSub.broadcast(
+      publisher.pubsub,
+      "streams:info:#{publisher.id}",
+      {:live_ex_webrtc, :info, publisher.audio_track, publisher.video_track}
+    )
+
+    Process.send_after(self(), :streams_info, 1_000)
+
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_event("start-streaming", _, socket) do
     {:noreply,
      socket
@@ -563,6 +578,8 @@ defmodule LiveExWebRTC.Publisher do
         audio_track: audio_track,
         video_track: video_track
     }
+
+    Process.send_after(self(), :streams_info, 1_000)
 
     {:noreply,
      socket
