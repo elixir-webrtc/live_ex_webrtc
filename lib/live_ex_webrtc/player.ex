@@ -60,6 +60,9 @@ defmodule LiveExWebRTC.Player do
   use Phoenix.LiveView
 
   require Logger
+
+  import LiveExWebRTC.CoreComponents
+
   alias ExWebRTC.RTPCodecParameters
   alias ExWebRTC.RTP.{H264, VP8}
   alias LiveExWebRTC.Player
@@ -207,11 +210,31 @@ defmodule LiveExWebRTC.Player do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="">
-      <video id={@player.id} phx-hook="Player" class={@class} controls autoplay muted></video>
-      <select id="lexp-video-quality">
-        <option :for={{id, layer} <- @publisher.video_layers} value={id}>{layer}</option>
-      </select>
+    <div class={@class}>
+      <div class="group inline-block relative w-full h-full">
+        <video id={@player.id} phx-hook="Player" class="w-full h-full" controls autoplay muted>
+        </video>
+
+        <div class={"z-40 absolute top-0 left-0 #{@display_settings} w-full h-full opacity-75 bg-black"}>
+          <div class="p-4  flex flex-row">
+            <div class="flex flex-col h-full gap-4 border-r-4 py-4 px-4 pr-8 font-bold text-white">
+              <span class="cursor-pointer">Video Quality </span>
+              <span class="cursor-pointer">Nerd Stats </span>
+              <span class="cursor-pointer" phx-click="toggle-settings">Exit</span>
+            </div>
+            <div class="py-4 px-8 pr-4 ">
+              <select id="lexp-video-quality" class="z-40 ">
+                <option :for={{id, layer} <- @player.video_layers} value={id}>{layer}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <span
+          phx-click="toggle-settings"
+          class="hero-cog-8-tooth text-white w-16 h-16 absolute top-[50%] left-[50%] translate-y-[-75%] translate-x-[-50%] transform duration-300 ease-in-out group-hover:visible invisible transition-opacity opacity-0 group-hover:opacity-100"
+        />
+      </div>
     </div>
     """
   end
@@ -229,7 +252,7 @@ defmodule LiveExWebRTC.Player do
           {^ref, %Player{publisher_id: ^pub_id} = player} ->
             player = %Player{player | layer: "h", target_layer: "h"}
             PubSub.subscribe(player.pubsub, "streams:info:#{player.publisher_id}")
-            assign(socket, player: player)
+            assign(socket, player: player, display_settings: "hidden")
         after
           5000 -> exit(:timeout)
         end
@@ -368,6 +391,20 @@ defmodule LiveExWebRTC.Player do
 
         {:noreply, socket}
     end
+  end
+
+  @impl true
+  def handle_event("toggle-settings", _params, socket) do
+    socket =
+      case socket.assigns do
+        %{display_settings: "hidden"} ->
+          assign(socket, :display_settings, "flex")
+
+        %{display_settings: "flex"} ->
+          assign(socket, :display_settings, "hidden")
+      end
+
+    {:noreply, socket}
   end
 
   @impl true
