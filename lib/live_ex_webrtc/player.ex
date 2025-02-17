@@ -61,8 +61,6 @@ defmodule LiveExWebRTC.Player do
 
   require Logger
 
-  import LiveExWebRTC.CoreComponents
-
   alias ExWebRTC.RTPCodecParameters
   alias ExWebRTC.RTP.{H264, VP8}
   alias LiveExWebRTC.Player
@@ -142,7 +140,6 @@ defmodule LiveExWebRTC.Player do
   * `id` - player id. This is typically your user id (if there is users database).
   It is used to identify live view and generated HTML video player.
   * `publisher_id` - publisher id that this player is going to subscribe to.
-  * `pubsub` - a pubsub that player live view will subscribe to for audio and video packets. See module doc for more.
   * `on_connected` - callback called when the underlying peer connection changes its state to the `:connected`. See `t:on_connected/0`.
   * `on_packet` - callback called for each audio and video RTP packet. Can be used to modify the packet before sending via WebRTC to the other side. See `t:on_packet/0`.
   * `ice_servers` - a list of `t:ExWebRTC.PeerConnection.Configuration.ice_server/0`,
@@ -224,7 +221,10 @@ defmodule LiveExWebRTC.Player do
             </div>
             <div class="py-4 px-8 pr-4 ">
               <select id="lexp-video-quality" class="z-40 ">
-                <option :for={{id, layer} <- @player.video_layers} value={id}>{layer}</option>
+                <%= for {id, layer} <- @player.video_layers do %>
+                  <option :if={id == @player.layer} value={id} selected>{layer}</option>
+                  <option :if={id != @player.layer} value={id}>{layer}</option>
+                <% end %>
               </select>
             </div>
           </div>
@@ -269,11 +269,18 @@ defmodule LiveExWebRTC.Player do
 
     # subscribe only if we managed to negotiate tracks
     if player.audio_track_id != nil do
-      PubSub.subscribe(player.pubsub, "streams:audio:#{player.publisher_id}")
+      PubSub.subscribe(
+        player.pubsub,
+        "streams:audio:#{player.publisher_id}:#{player.publisher_audio_track.id}"
+      )
     end
 
     if player.video_track_id != nil do
-      PubSub.subscribe(player.pubsub, "streams:video:#{player.publisher_id}:#{player.layer}")
+      PubSub.subscribe(
+        player.pubsub,
+        "streams:video:#{player.publisher_id}:#{player.publisher_video_track.id}:#{player.layer}"
+      )
+
       broadcast_keyframe_req(socket)
     end
 
@@ -300,35 +307,57 @@ defmodule LiveExWebRTC.Player do
   def handle_info({:live_ex_webrtc, :info, publisher_audio_track, publisher_video_track}, socket) do
     %{player: player} = socket.assigns
 
-    player =
-      case player do
-        %Player{publisher_audio_track: nil, publisher_video_track: nil} ->
-          video_layers = (publisher_video_track && publisher_video_track.rids) || ["h"]
+    case player do
+      %Player{
+        publisher_audio_track: ^publisher_audio_track,
+        publisher_video_track: ^publisher_video_track
+      } ->
+        # tracks are the same, do nothing
+        {:noreply, socket}
 
-          video_layers =
-            Enum.map(video_layers, fn
-              "h" -> {"h", "high"}
-              "m" -> {"m", "medium"}
-              "l" -> {"l", "low"}
-            end)
+      %Player{
+        publisher_audio_track: old_publisher_audio_track,
+        publisher_video_track: old_publisher_video_track,
+        video_layers: old_layers
+      } ->
+        video_layers = (publisher_video_track && publisher_video_track.rids) || ["h"]
 
-          %Player{
-            player
-            | publisher_audio_track: publisher_audio_track,
-              publisher_video_track: publisher_video_track,
-              video_layers: video_layers
-          }
+        video_layers =
+          Enum.map(video_layers, fn
+            "h" -> {"h", "high"}
+            "m" -> {"m", "medium"}
+            "l" -> {"l", "low"}
+          end)
 
-        %Player{
-          publisher_audio_track: ^publisher_audio_track,
-          publisher_video_track: ^publisher_video_track
-        } ->
+        player = %Player{
           player
-      end
+          | publisher_audio_track: publisher_audio_track,
+            publisher_video_track: publisher_video_track,
+            layer: "h",
+            target_layer: "h",
+            video_layers: video_layers,
+            munger: nil
+        }
 
-    socket = assign(socket, :player, player)
+        socket = assign(socket, :player, player)
 
-    {:noreply, socket}
+        if old_publisher_audio_track != nil or old_publisher_video_track != nil do
+          PubSub.unsubscribe(
+            player.pubsub,
+            "streams:audio:#{player.publisher_id}:#{old_publisher_audio_track.id}"
+          )
+
+          Enum.each(old_layers, fn {id, _layer} ->
+            PubSub.unsubscribe(
+              player.pubsub,
+              "streams:video:#{player.publisher_id}:#{old_publisher_video_track.id}:#{id}"
+            )
+          end)
+        end
+
+        socket = push_event(socket, "connect-#{player.id}", %{})
+        {:noreply, socket}
+    end
   end
 
   def handle_info({:live_ex_webrtc, :audio, packet}, socket) do
@@ -368,7 +397,7 @@ defmodule LiveExWebRTC.Player do
 
           PubSub.unsubscribe(
             socket.assigns.player.pubsub,
-            "streams:video:#{player.publisher_id}:#{player.layer}"
+            "streams:video:#{player.publisher_id}:#{player.publisher_video_track.id}:#{player.layer}"
           )
 
           flush_layer(player.layer)
@@ -381,14 +410,7 @@ defmodule LiveExWebRTC.Player do
         end
 
       true ->
-        # this should never happen
-        Logger.warning("unexpected unsubscribe")
-
-        PubSub.unsubscribe(
-          socket.assigns.player.pubsub,
-          "streams:video:#{player.publisher_id}:#{rid}"
-        )
-
+        Logger.warning("Unexpected packet. Ignoring.")
         {:noreply, socket}
     end
   end
@@ -490,9 +512,15 @@ defmodule LiveExWebRTC.Player do
     if player.layer == layer do
       {:noreply, socket}
     else
+      # this shouldn't be needed but just to make sure we won't duplicate subscription
+      PubSub.unsubscribe(
+        player.pubsub,
+        "streams:video:#{player.publisher_id}:#{player.publisher_video_track.id}:#{layer}"
+      )
+
       PubSub.subscribe(
-        socket.assigns.player.pubsub,
-        "streams:video:#{socket.assigns.player.publisher_id}:#{layer}"
+        player.pubsub,
+        "streams:video:#{player.publisher_id}:#{player.publisher_video_track.id}:#{layer}"
       )
 
       player = %Player{player | target_layer: layer}

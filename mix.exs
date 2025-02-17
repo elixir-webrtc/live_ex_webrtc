@@ -42,7 +42,8 @@ defmodule LiveExWebrtc.MixProject do
     [
       {:phoenix_live_view, "~> 1.0"},
       {:jason, "~> 1.0"},
-      {:ex_webrtc, "~> 0.8.0"},
+      # {:ex_webrtc, "~> 0.8.0"},
+      {:ex_webrtc, github: "elixir-webrtc/ex_webrtc", override: true},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false}
     ]
   end

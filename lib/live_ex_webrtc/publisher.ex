@@ -490,7 +490,7 @@ defmodule LiveExWebRTC.Publisher do
         # for non-simulcast track, push everything with "h" identifier
         PubSub.broadcast(
           publisher.pubsub,
-          "streams:video:#{publisher.id}:#{rid || "h"}",
+          "streams:video:#{publisher.id}:#{publisher.video_track.id}:#{rid || "h"}",
           {:live_ex_webrtc, :video, rid || "h", packet}
         )
 
@@ -499,7 +499,7 @@ defmodule LiveExWebRTC.Publisher do
       %Publisher{audio_track: audio_track} when audio_track.id == track_id ->
         PubSub.broadcast(
           publisher.pubsub,
-          "streams:audio:#{publisher.id}",
+          "streams:audio:#{publisher.id}:#{publisher.audio_track.id}",
           {:live_ex_webrtc, :audio, packet}
         )
 

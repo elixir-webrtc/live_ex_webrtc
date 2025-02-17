@@ -1,34 +1,43 @@
 export function createPlayerHook(iceServers = []) {
   return {
     async mounted() {
-      this.videoQuality = document.getElementById("lexp-video-quality");
-      this.videoQuality.onchange = () => {
-        this.pushEventTo(this.el, "layer", this.videoQuality.value);
-      };
+      const view = this;
 
-      this.pc = new RTCPeerConnection({ iceServers: iceServers });
+      view.handleEvent(`connect-${view.el.id}`, async () => await view.connect(view));
 
-      this.pc.onicecandidate = (ev) => {
-        this.pushEventTo(this.el, "ice", JSON.stringify(ev.candidate));
-      };
-
-      this.pc.ontrack = (ev) => {
-        if (!this.el.srcObject) {
-          this.el.srcObject = ev.streams[0];
+      const eventName = "answer" + "-" + view.el.id;
+      view.handleEvent(eventName, async (answer) => {
+        if (view.pc) {
+          await view.pc.setRemoteDescription(answer);
         }
-      };
-      this.pc.addTransceiver("audio", { direction: "recvonly" });
-      this.pc.addTransceiver("video", { direction: "recvonly" });
-
-      const offer = await this.pc.createOffer();
-      await this.pc.setLocalDescription(offer);
-
-      const eventName = "answer" + "-" + this.el.id;
-      this.handleEvent(eventName, async (answer) => {
-        await this.pc.setRemoteDescription(answer);
       });
 
-      this.pushEventTo(this.el, "offer", offer);
+      view.videoQuality = document.getElementById("lexp-video-quality");
+      view.videoQuality.onchange = () => {
+        view.pushEventTo(view.el, "layer", view.videoQuality.value);
+      };
+    },
+
+    async connect(view) {
+      view.el.srcObject = undefined;
+      view.pc = new RTCPeerConnection({ iceServers: iceServers });
+
+      view.pc.onicecandidate = (ev) => {
+        view.pushEventTo(view.el, "ice", JSON.stringify(ev.candidate));
+      };
+
+      view.pc.ontrack = (ev) => {
+        if (!view.el.srcObject) {
+          view.el.srcObject = ev.streams[0];
+        }
+      };
+      view.pc.addTransceiver("audio", { direction: "recvonly" });
+      view.pc.addTransceiver("video", { direction: "recvonly" });
+
+      const offer = await view.pc.createOffer();
+      await view.pc.setLocalDescription(offer);
+
+      view.pushEventTo(view.el, "offer", offer);
     },
   };
 }
