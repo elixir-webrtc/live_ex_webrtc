@@ -127,7 +127,7 @@ defmodule LiveExWebRTC.Publisher do
   @type on_packet ::
           (publisher_id :: String.t(),
            packet_type :: :audio | :video,
-           layer :: nil | "l" | "m" | "h",
+           layer :: nil | String.t(),
            packet :: ExRTP.Packet.t(),
            socket :: Phoenix.LiveView.Socket.t() ->
              packet :: ExRTP.Packet.t())
@@ -551,6 +551,8 @@ defmodule LiveExWebRTC.Publisher do
   def handle_info({:ex_webrtc, _pc, {:rtp, track_id, rid, packet}}, socket) do
     %{publisher: publisher} = socket.assigns
 
+    if publisher.record?, do: Recorder.record(publisher.recorder, track_id, rid, packet)
+
     {kind, rid} =
       case publisher do
         %Publisher{video_track: %{id: ^track_id}} -> {:video, rid || "h"}
@@ -561,8 +563,6 @@ defmodule LiveExWebRTC.Publisher do
       if publisher.on_packet,
         do: publisher.on_packet.(publisher.id, kind, rid, packet, socket),
         else: packet
-
-    if publisher.record?, do: Recorder.record(publisher.recorder, track_id, nil, packet)
 
     {layer, msg} =
       case kind do
