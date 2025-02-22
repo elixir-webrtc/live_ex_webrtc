@@ -520,8 +520,8 @@ defmodule LiveExWebRTC.Publisher do
 
     kind =
       case publisher do
-        %Publisher{video_track_id: ^track_id} -> :video
-        %Publisher{audio_track_id: ^track_id} -> :audio
+        %Publisher{video_track: %{id: ^track_id}} -> :video
+        %Publisher{audio_track: %{id: ^track_id}} -> :audio
       end
 
     packet =
@@ -587,7 +587,7 @@ defmodule LiveExWebRTC.Publisher do
       ) do
     recorder_result =
       if pub.record? do
-        Recorder.end_tracks(pub.recorder, [pub.audio_track_id, pub.video_track_id])
+        Recorder.end_tracks(pub.recorder, [pub.audio_track.id, pub.video_track.id])
       end
 
     if pub.on_disconnected, do: pub.on_disconnected.(pub.id, recorder_result)
