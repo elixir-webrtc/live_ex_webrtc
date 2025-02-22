@@ -6,12 +6,14 @@ defmodule LiveExWebRTC.Publisher do
   * renders:
     * audio and video device selects
     * audio and video stream configs
+    * stream recording toggle (with recordings enabled)
     * stream preview
     * transmission stats
   * on clicking "Start Streaming", creates WebRTC PeerConnection both on the client and server side
   * connects those two peer connections negotiatiing a single audio and video track
   * sends audio and video from selected devices to the live view process
   * publishes received audio and video packets to the configured PubSub
+  * can optionally use the [ExWebRTC Recorder](https://github.com/elixir-webrtc/ex_webrtc_recorder) to record the stream
 
   When `LiveExWebRTC.Player` is used, audio and video packets are delivered automatically,
   assuming both components are configured with the same PubSub.
@@ -73,29 +75,45 @@ defmodule LiveExWebRTC.Publisher do
 
   alias ExWebRTC.RTPCodecParameters
   alias LiveExWebRTC.Publisher
-  alias ExWebRTC.{ICECandidate, PeerConnection, SessionDescription}
+  alias ExWebRTC.{ICECandidate, PeerConnection, Recorder, SessionDescription}
   alias Phoenix.PubSub
 
-  @type on_connected() :: (publisher_id :: String.t() -> any())
+  @type on_connected :: (publisher_id :: String.t() -> any())
 
-  @type on_packet() ::
+  @typedoc """
+  Function signature of the `on_disconnected` callback.
+
+  * If `recorder` was passed to `attach/2` and the "Record stream?" checkbox ticked,
+    the second argument contains the result of calling `ExWebRTC.Recorder.end_tracks/2`.
+    See `t:ExWebRTC.Recorder.end_tracks_ok_result/0` for more info.
+  * Otherwise, the second argument is `nil` and can be ignored.
+  """
+  @type on_disconnected :: (publisher_id :: String.t(),
+                            ExWebRTC.Recorder.end_tracks_ok_result()
+                            | nil ->
+                              any())
+
+  @type on_packet ::
           (publisher_id :: String.t(),
            packet_type :: :audio | :video,
            packet :: ExRTP.Packet.t(),
            socket :: Phoenix.LiveView.Socket.t() ->
              packet :: ExRTP.Packet.t())
 
-  @type t() :: struct()
+  @type t :: struct()
 
   defstruct id: nil,
             pc: nil,
             streaming?: false,
             simulcast_supported?: nil,
+            record?: false,
             audio_track: nil,
             video_track: nil,
             on_packet: nil,
             on_connected: nil,
+            on_disconnected: nil,
             pubsub: nil,
+            recorder: nil,
             ice_servers: nil,
             ice_ip_filter: nil,
             ice_port_range: nil,
@@ -134,8 +152,11 @@ defmodule LiveExWebRTC.Publisher do
   Options:
   * `id` - publisher id. This is typically your user id (if there is users database).
   It is used to identify live view and generated HTML elements.
-  * `pubsub` - a pubsub that publisher live view will use for broadcasting audio and video packets received from a browser. See module doc for more.
+  * `pubsub` - a pubsub that publisher live view will use for broadcasting audio and video packets received from a browser. See module doc for more info.
+  * `recorder` - optional `ExWebRTC.Recorder` instance that publisher live view will use for recording the stream.
+    See module doc and `t:on_disconnected/0` for more info.
   * `on_connected` - callback called when the underlying peer connection changes its state to the `:connected`. See `t:on_connected/0`.
+  * `on_disconnected` - callback called when the underlying peer connection process terminates. See `t:on_disconnected/0`.
   * `on_packet` - callback called for each audio and video RTP packet. Can be used to modify the packet before publishing it on a pubsub. See `t:on_packet/0`.
   * `ice_servers` - a list of `t:ExWebRTC.PeerConnection.Configuration.ice_server/0`,
   * `ice_ip_filter` - `t:ExICE.ICEAgent.ip_filter/0`,
@@ -151,8 +172,10 @@ defmodule LiveExWebRTC.Publisher do
         :id,
         :name,
         :pubsub,
+        :recorder,
         :on_packet,
         :on_connected,
+        :on_disconnected,
         :ice_servers,
         :ice_ip_filter,
         :ice_port_range,
@@ -164,8 +187,10 @@ defmodule LiveExWebRTC.Publisher do
     publisher = %Publisher{
       id: Keyword.fetch!(opts, :id),
       pubsub: Keyword.fetch!(opts, :pubsub),
+      recorder: Keyword.get(opts, :recorder),
       on_packet: Keyword.get(opts, :on_packet),
       on_connected: Keyword.get(opts, :on_connected),
+      on_disconnected: Keyword.get(opts, :on_disconnected),
       ice_servers: Keyword.get(opts, :ice_servers, [%{urls: "stun:stun.l.google.com:19302"}]),
       ice_ip_filter: Keyword.get(opts, :ice_ip_filter),
       ice_port_range: Keyword.get(opts, :ice_port_range),
@@ -174,8 +199,11 @@ defmodule LiveExWebRTC.Publisher do
       pc_genserver_opts: Keyword.get(opts, :pc_genserver_opts, [])
     }
 
+    # Check the "Record stream?" checkbox by default if recorder was configured
+    record? = publisher.recorder != nil
+
     socket
-    |> assign(publisher: publisher)
+    |> assign(publisher: %Publisher{publisher | record?: record?})
     |> attach_hook(:handshake, :handle_info, &handshake/2)
   end
 
@@ -374,6 +402,16 @@ defmodule LiveExWebRTC.Publisher do
               </div>
             </div>
           </div>
+          <div :if={@publisher.recorder} class="flex gap-2.5 items-center">
+            <label for="lex-record-stream">Record stream:</label>
+            <input
+              type="checkbox"
+              phx-click="record-stream-change"
+              id="lex-record-stream"
+              class="rounded-full"
+              checked={@publisher.record?}
+            />
+          </div>
           <div id="lex-videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 pt-2.5">
             <video
               id="lex-preview-player"
@@ -480,38 +518,46 @@ defmodule LiveExWebRTC.Publisher do
   def handle_info({:ex_webrtc, _pc, {:rtp, track_id, rid, packet}}, socket) do
     %{publisher: publisher} = socket.assigns
 
-    case publisher do
-      %Publisher{video_track: video_track} when video_track.id == track_id ->
-        packet =
-          if publisher.on_packet,
-            do: publisher.on_packet.(publisher.id, :video, packet, socket),
-            else: packet
+    kind =
+      case publisher do
+        %Publisher{video_track_id: ^track_id} -> :video
+        %Publisher{audio_track_id: ^track_id} -> :audio
+      end
 
-        # for non-simulcast track, push everything with "h" identifier
-        PubSub.broadcast(
-          publisher.pubsub,
-          "streams:video:#{publisher.id}:#{publisher.video_track.id}:#{rid || "h"}",
-          {:live_ex_webrtc, :video, rid || "h", packet}
-        )
+    packet =
+      if publisher.on_packet,
+        do: publisher.on_packet.(publisher.id, kind, packet, socket),
+        else: packet
 
-        {:noreply, socket}
+    if publisher.record?, do: Recorder.record(publisher.recorder, track_id, nil, packet)
 
-      %Publisher{audio_track: audio_track} when audio_track.id == track_id ->
-        PubSub.broadcast(
-          publisher.pubsub,
-          "streams:audio:#{publisher.id}:#{publisher.audio_track.id}",
-          {:live_ex_webrtc, :audio, packet}
-        )
+    {layer, msg} =
+      case kind do
+        :audio -> {"", {:live_ex_webrtc, kind, packet}}
+        # for non simulcast tracks, push everything with "h" identifier
+        :video -> {":#{rid || "h"}", {:live_ex_webrtc, kind, rid || "h", packet}}
+      end
 
-        if publisher.on_packet, do: publisher.on_packet.(publisher.id, :audio, packet, socket)
-        {:noreply, socket}
-    end
+    PubSub.broadcast(publisher.pubsub, "streams:#{kind}:#{publisher.id}:#{track_id}#{layer}", msg)
+
+    {:noreply, socket}
   end
 
   @impl true
   def handle_info({:ex_webrtc, _pid, {:connection_state_change, :connected}}, socket) do
     %{publisher: pub} = socket.assigns
+
+    if pub.record? do
+      [
+        %{kind: :audio, receiver: %{track: audio_track}},
+        %{kind: :video, receiver: %{track: video_track}}
+      ] = PeerConnection.get_transceivers(pub.pc)
+
+      Recorder.add_tracks(pub.recorder, [audio_track, video_track])
+    end
+
     if pub.on_connected, do: pub.on_connected.(pub.id)
+
     {:noreply, socket}
   end
 
@@ -535,6 +581,22 @@ defmodule LiveExWebRTC.Publisher do
     {:noreply, socket}
   end
 
+  def handle_info(
+        {:DOWN, _ref, :process, pc, _reason},
+        %{assigns: %{publisher: %{pc: pc} = pub}} = socket
+      ) do
+    recorder_result =
+      if pub.record? do
+        Recorder.end_tracks(pub.recorder, [pub.audio_track_id, pub.video_track_id])
+      end
+
+    if pub.on_disconnected, do: pub.on_disconnected.(pub.id, recorder_result)
+
+    {:noreply,
+     socket
+     |> assign(publisher: %Publisher{pub | streaming?: false})}
+  end
+
   @impl true
   def handle_event("start-streaming", _, socket) do
     {:noreply,
@@ -552,10 +614,20 @@ defmodule LiveExWebRTC.Publisher do
   end
 
   @impl true
+  def handle_event("record-stream-change", params, socket) do
+    record? = params["value"] == "on"
+
+    {:noreply,
+     socket
+     |> assign(publisher: %Publisher{socket.assigns.publisher | record?: record?})}
+  end
+
+  @impl true
   def handle_event("offer", unsigned_params, socket) do
     %{publisher: publisher} = socket.assigns
     offer = SessionDescription.from_json(unsigned_params)
     {:ok, pc} = spawn_peer_connection(socket)
+    Process.monitor(pc)
 
     :ok = PeerConnection.set_remote_description(pc, offer)
 
