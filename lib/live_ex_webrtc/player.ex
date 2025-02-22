@@ -99,7 +99,7 @@ defmodule LiveExWebRTC.Player do
             munger: nil,
             layer: nil,
             target_layer: nil,
-            video_layers: [{"h", "high"}],
+            video_layers: [],
             # codec that will be used for video sending
             video_send_codec: nil
 
@@ -253,7 +253,6 @@ defmodule LiveExWebRTC.Player do
       socket =
         receive do
           {^ref, %Player{publisher_id: ^pub_id} = player} ->
-            player = %Player{player | layer: "h", target_layer: "h"}
             PubSub.subscribe(player.pubsub, "streams:info:#{player.publisher_id}")
             assign(socket, player: player, display_settings: "hidden")
         after
@@ -267,7 +266,10 @@ defmodule LiveExWebRTC.Player do
   end
 
   @impl true
-  def handle_info({:ex_webrtc, _pid, {:connection_state_change, :connected}}, socket) do
+  def handle_info(
+        {:ex_webrtc, pc, {:connection_state_change, :connected}},
+        %{assigns: %{player: %{pc: pc}}} = socket
+      ) do
     %{player: player} = socket.assigns
 
     # subscribe only if we managed to negotiate tracks
@@ -323,6 +325,8 @@ defmodule LiveExWebRTC.Player do
         publisher_video_track: old_publisher_video_track,
         video_layers: old_layers
       } ->
+        if player.pc, do: PeerConnection.close(player.pc)
+
         video_layers = (publisher_video_track && publisher_video_track.rids) || ["h"]
 
         video_layers =
@@ -336,6 +340,7 @@ defmodule LiveExWebRTC.Player do
           player
           | publisher_audio_track: publisher_audio_track,
             publisher_video_track: publisher_video_track,
+            pc: nil,
             layer: "h",
             target_layer: "h",
             video_layers: video_layers,
@@ -358,8 +363,12 @@ defmodule LiveExWebRTC.Player do
           end)
         end
 
-        socket = push_event(socket, "connect-#{player.id}", %{})
-        {:noreply, socket}
+        if publisher_audio_track != nil or publisher_video_track != nil do
+          socket = push_event(socket, "connect-#{player.id}", %{})
+          {:noreply, socket}
+        else
+          {:noreply, socket}
+        end
     end
   end
 
@@ -456,8 +465,8 @@ defmodule LiveExWebRTC.Player do
     audio_tr = Enum.find(transceivers, fn tr -> tr.sender.id == audio_sender.id end)
 
     # check if tracks were negotiated successfully
-    video_negotiated? = video_tr && video_tr.direction == :sendrecv
-    audio_negotiated? = audio_tr && audio_tr.direction == :sendrecv
+    video_negotiated? = video_tr && video_tr.current_direction not in [:recvonly, :inactive]
+    audio_negotiated? = audio_tr && audio_tr.current_direction not in [:recvonly, :inactive]
 
     new_player = %Player{
       player
@@ -465,7 +474,7 @@ defmodule LiveExWebRTC.Player do
         audio_track_id: audio_negotiated? && audio_track.id,
         video_track_id: video_negotiated? && video_track.id,
         munger: video_negotiated? && Munger.new(List.first(video_tr.codecs)),
-        video_send_codec: List.first(video_tr.codecs)
+        video_send_codec: video_negotiated? && List.first(video_tr.codecs)
     }
 
     {:noreply,

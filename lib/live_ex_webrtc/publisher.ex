@@ -22,7 +22,8 @@ defmodule LiveExWebRTC.Publisher do
   * `streams:audio:#{publisher_id}:#{audio_track_id}` - for receiving audio packets
   * `streams:video:#{publisher_id}:#{video_track_id}:#{layer}` - for receiving video packets.
   The message is in form of `{:live_ex_webrtc, :video, "l" | "m" | "h", ExRTP.Packet.t()}` or
-  `{:live_ex_webrtc, :audio, ExRTP.Packet.t()}`
+  `{:live_ex_webrtc, :audio, ExRTP.Packet.t()}`. Packets for non-simulcast video tracks are always
+  sent with "h" identifier.
   * `streams:info:#{publisher.id}"` - for receiving information about publisher tracks and their layers.
   The message is in form of: `{:live_ex_webrtc, :info, audio_track :: ExWebRTC.MediaStreamTrack.t(), video_track :: ExWebRTC.MediaStreamTrack.t()}`.
   * `publishers:#{publisher_id}` for sending keyframe request.
@@ -126,6 +127,7 @@ defmodule LiveExWebRTC.Publisher do
   @type on_packet ::
           (publisher_id :: String.t(),
            packet_type :: :audio | :video,
+           layer :: nil | "l" | "m" | "h",
            packet :: ExRTP.Packet.t(),
            socket :: Phoenix.LiveView.Socket.t() ->
              packet :: ExRTP.Packet.t())
@@ -510,6 +512,7 @@ defmodule LiveExWebRTC.Publisher do
       socket =
         receive do
           {^ref, %Publisher{id: ^pub_id} = publisher} ->
+            Process.send_after(self(), :streams_info, 1000)
             codecs = publisher.video_codecs || PeerConnection.Configuration.default_video_codecs()
             publisher = %Publisher{publisher | simulcast_supported?: simulcast_supported?(codecs)}
             assign(socket, publisher: publisher)
@@ -548,15 +551,15 @@ defmodule LiveExWebRTC.Publisher do
   def handle_info({:ex_webrtc, _pc, {:rtp, track_id, rid, packet}}, socket) do
     %{publisher: publisher} = socket.assigns
 
-    kind =
+    {kind, rid} =
       case publisher do
-        %Publisher{video_track: %{id: ^track_id}} -> :video
-        %Publisher{audio_track: %{id: ^track_id}} -> :audio
+        %Publisher{video_track: %{id: ^track_id}} -> {:video, rid || "h"}
+        %Publisher{audio_track: %{id: ^track_id}} -> {:audio, nil}
       end
 
     packet =
       if publisher.on_packet,
-        do: publisher.on_packet.(publisher.id, kind, packet, socket),
+        do: publisher.on_packet.(publisher.id, kind, rid, packet, socket),
         else: packet
 
     if publisher.record?, do: Recorder.record(publisher.recorder, track_id, nil, packet)
@@ -565,7 +568,7 @@ defmodule LiveExWebRTC.Publisher do
       case kind do
         :audio -> {"", {:live_ex_webrtc, kind, packet}}
         # for non simulcast tracks, push everything with "h" identifier
-        :video -> {":#{rid || "h"}", {:live_ex_webrtc, kind, rid || "h", packet}}
+        :video -> {":#{rid}", {:live_ex_webrtc, kind, rid, packet}}
       end
 
     PubSub.broadcast(publisher.pubsub, "streams:#{kind}:#{publisher.id}:#{track_id}#{layer}", msg)
@@ -680,8 +683,6 @@ defmodule LiveExWebRTC.Publisher do
         audio_track: audio_track,
         video_track: video_track
     }
-
-    Process.send_after(self(), :streams_info, 1_000)
 
     {:noreply,
      socket
