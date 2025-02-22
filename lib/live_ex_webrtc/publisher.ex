@@ -750,7 +750,7 @@ defmodule LiveExWebRTC.Publisher do
   end
 
   defp simulcast_supported?(codecs) do
-    Enum.any?(codecs, fn
+    Enum.all?(codecs, fn
       %RTPCodecParameters{mime_type: "video/VP8"} ->
         true
 
