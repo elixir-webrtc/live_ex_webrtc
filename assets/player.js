@@ -3,7 +3,10 @@ export function createPlayerHook(iceServers = []) {
     async mounted() {
       const view = this;
 
-      view.handleEvent(`connect-${view.el.id}`, async () => await view.connect(view));
+      view.handleEvent(
+        `connect-${view.el.id}`,
+        async () => await view.connect(view)
+      );
 
       const eventName = "answer" + "-" + view.el.id;
       view.handleEvent(eventName, async (answer) => {
@@ -38,6 +41,6 @@ export function createPlayerHook(iceServers = []) {
       await view.pc.setLocalDescription(offer);
 
       view.pushEventTo(view.el, "offer", offer);
-    },
+    }
   };
 }

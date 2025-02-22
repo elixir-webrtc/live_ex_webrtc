@@ -314,22 +314,41 @@ export function createPublisherHook(iceServers = []) {
     },
 
     addSimulcastVideo(view) {
+      const videoTrack = view.localStream.getVideoTracks()[0];
+      const settings = videoTrack.getSettings();
       const maxTotalBitrate = view.bitrate.value * 1024;
-      // we do a very simple calculation: maxTotalBitrate = x + 1/4x + 1/16x
-      // x - bitrate for base resolution
-      // 1/4x- bitrate for resolution scaled down by 2 - we decrese total number of pixels by 4 (width/2*height/2)
-      // 1/16x- bitrate for resolution scaled down by 4 - we decrese total number of pixels by 16 (width/4*height/4)
-      const maxHBitrate = Math.floor((16 * maxTotalBitrate) / 21);
-      const maxMBitrate = Math.floor(maxHBitrate / 4);
-      const maxLBitrate = Math.floor(maxHBitrate / 16);
 
-      view.pc.addTransceiver(view.localStream.getVideoTracks()[0], {
-        streams: [view.localStream],
-        sendEncodings: [
+      // This is based on:
+      // https://source.chromium.org/chromium/chromium/src/+/main:third_party/webrtc/video/config/simulcast.cc;l=79?q=simulcast.cc
+      let sendEncodings;
+      if (settings.width >= 960 && settings.height >= 540) {
+        // we do a very simple calculation: maxTotalBitrate = x + 1/4x + 1/16x
+        // x - bitrate for base resolution
+        // 1/4x- bitrate for resolution scaled down by 2 - we decrese total number of pixels by 4 (width/2*height/2)
+        // 1/16x- bitrate for resolution scaled down by 4 - we decrese total number of pixels by 16 (width/4*height/4)
+        const maxHBitrate = Math.floor((16 * maxTotalBitrate) / 21);
+        const maxMBitrate = Math.floor(maxHBitrate / 4);
+        const maxLBitrate = Math.floor(maxHBitrate / 16);
+        sendEncodings = [
           { rid: "h", maxBitrate: maxHBitrate },
           { rid: "m", scaleResolutionDownBy: 2, maxBitrate: maxMBitrate },
           { rid: "l", scaleResolutionDownBy: 4, maxBitrate: maxLBitrate },
-        ],
+        ];
+      } else if (settings.width >= 480 && settings.height >= 270) {
+        // maxTotalBitate = x + 1/4x
+        const maxHBitrate = Math.floor((4 * maxTotalBitrate) / 5);
+        const maxMBitrate = Math.floor(maxHBitrate / 4);
+        sendEncodings = [
+          { rid: "h", maxBitrate: maxHBitrate },
+          { rid: "m", scaleResolutionDownBy: 2, maxBitrate: maxMBitrate },
+        ];
+      } else {
+        sendEncodings = [{ rid: "h", maxBitrate: maxTotalBitrate }];
+      }
+
+      view.pc.addTransceiver(view.localStream.getVideoTracks()[0], {
+        streams: [view.localStream],
+        sendEncodings: sendEncodings,
       });
     },
 
