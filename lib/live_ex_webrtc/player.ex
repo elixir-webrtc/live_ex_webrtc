@@ -12,10 +12,9 @@ defmodule LiveExWebRTC.Player do
   When `LiveExWebRTC.Publisher` is used, audio an video packets are delivered automatically,
   assuming both components are configured with the same PubSub.
 
-  If `LiveExWebRTC.Publisher` is not used, you should send packets to the
-  `streams:audio:#{publisher_id}` and `streams:video:#{publisher_id}` topics.
-
-  Keyframe requests are sent under `publishers:#{publisher_id}` topic.
+  If `LiveExWebRTC.Publisher` is not used, you need to send track information and packets,
+  and receive keyframe requests manually using specific PubSub topics.
+  See `LiveExWebRTC.Publisher` module doc for more.
 
   ## JavaScript Hook
 
@@ -33,6 +32,11 @@ defmodule LiveExWebRTC.Player do
     hooks: Hooks
   });
   ```
+
+  ## Simulcast
+
+  Simulcast requires video codecs to be H264 (packetization mode 1) and/or VP8.
+  See `LiveExWebRTC.Publisher` module doc for more.
 
   ## Examples
 

@@ -18,13 +18,18 @@ defmodule LiveExWebRTC.Publisher do
   When `LiveExWebRTC.Player` is used, audio and video packets are delivered automatically,
   assuming both components are configured with the same PubSub.
 
-  If `LiveExWebRTC.Player` is not used, you should subscribe to `streams:audio:#{publisher_id}`
-  and `streams:video:#{publisher_id}` topics.
-
-  Keyframe requests should be sent on `publishers:#{publisher_id}` topic e.g.
-
+  If `LiveExWebRTC.Player` is not used, you should use following topics and messages:
+  * `streams:audio:#{publisher_id}:#{audio_track_id}` - for receiving audio packets
+  * `streams:video:#{publisher_id}:#{video_track_id}:#{layer}` - for receiving video packets.
+  The message is in form of `{:live_ex_webrtc, :video, "l" | "m" | "h", ExRTP.Packet.t()}` or
+  `{:live_ex_webrtc, :audio, ExRTP.Packet.t()}`
+  * `streams:info:#{publisher.id}"` - for receiving information about publisher tracks and their layers.
+  The message is in form of: `{:live_ex_webrtc, :info, audio_track :: ExWebRTC.MediaStreamTrack.t(), video_track :: ExWebRTC.MediaStreamTrack.t()}`.
+  * `publishers:#{publisher_id}` for sending keyframe request.
+  The message must be in form of `{:live_ex_webrtc, :keyframe_req, "l" | "m" | "h"}`
+  E.g.
   ```elixir
-  PubSub.broadcast(LiveTwitch.PubSub, "publishers:my_publisher", {:live_ex_webrtc, :keyframe_req})
+  PubSub.broadcast(LiveTwitch.PubSub, "publishers:my_publisher", {:live_ex_webrtc, :keyframe_req, "h"})
   ```
 
   ## JavaScript Hook
@@ -42,6 +47,31 @@ defmodule LiveExWebRTC.Publisher do
     // ...
     hooks: Hooks
   });
+  ```
+
+  ## Simulcast
+
+  Simulcast requires video codecs to be H264 (packetization mode 1) and/or VP8. E.g.
+
+  ```elixir
+  video_codecs = [
+    %RTPCodecParameters{
+      payload_type: 98,
+      mime_type: "video/H264",
+      clock_rate: 90_000,
+      sdp_fmtp_line: %FMTP{
+        pt: 98,
+        level_asymmetry_allowed: true,
+        packetization_mode: 1,
+        profile_level_id: 0x42E01F
+      }
+    },
+    %RTPCodecParameters{
+      payload_type: 96,
+      mime_type: "video/VP8",
+      clock_rate: 90_000
+    }
+  ]
   ```
 
   ## Examples
