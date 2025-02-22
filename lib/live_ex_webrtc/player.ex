@@ -220,7 +220,6 @@ defmodule LiveExWebRTC.Player do
           <div class="p-4  flex flex-row">
             <div class="flex flex-col h-full gap-4 border-r-4 py-4 px-4 pr-8 font-bold text-white">
               <span class="cursor-pointer">Video Quality </span>
-              <span class="cursor-pointer">Nerd Stats </span>
               <span class="cursor-pointer" phx-click="toggle-settings">Exit</span>
             </div>
             <div class="py-4 px-8 pr-4 ">
