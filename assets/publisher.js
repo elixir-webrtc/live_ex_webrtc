@@ -18,6 +18,8 @@ export function createPublisherHook(iceServers = []) {
       view.fps = document.getElementById("lex-fps");
       view.bitrate = document.getElementById("lex-bitrate");
 
+      view.recordStream = document.getElementById("lex-record-stream");
+
       view.previewPlayer = document.getElementById("lex-preview-player");
 
       view.audioBitrate = document.getElementById("lex-audio-bitrate");
@@ -93,6 +95,8 @@ export function createPublisherHook(iceServers = []) {
       view.audioApplyButton.disabled = true;
       view.videoApplyButton.disabled = true;
       view.bitrate.disabled = true;
+      // Button present only when Recorder is used
+      if (view.recordStream) view.recordStream.disabled = true;
     },
 
     enableControls(view) {
@@ -107,6 +111,8 @@ export function createPublisherHook(iceServers = []) {
       view.audioApplyButton.disabled = false;
       view.videoApplyButton.disabled = false;
       view.bitrate.disabled = false;
+      // See above
+      if (view.recordStream) view.recordStream.disabled = false;
     },
 
     async findDevices(view) {

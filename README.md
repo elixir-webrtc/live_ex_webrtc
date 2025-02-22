@@ -3,7 +3,7 @@
 [![Hex.pm](https://img.shields.io/hexpm/v/live_ex_webrtc.svg)](https://hex.pm/packages/live_ex_webrtc)
 [![API Docs](https://img.shields.io/badge/api-docs-yellow.svg?style=flat)](https://hexdocs.pm/live_ex_webrtc)
 
-Phoenix Live Components for Elixir WebRTC.
+Phoenix Live Components for [Elixir WebRTC](https://github.com/elixir-webrtc/ex_webrtc).
 
 ## Installation
 
