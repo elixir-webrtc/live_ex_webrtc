@@ -109,20 +109,23 @@ defmodule LiveExWebRTC.Publisher do
   alias ExWebRTC.{ICECandidate, PeerConnection, Recorder, SessionDescription}
   alias Phoenix.PubSub
 
+  @typedoc """
+  Called when WebRTC has connected.
+  """
   @type on_connected :: (publisher_id :: String.t() -> any())
 
   @typedoc """
-  Function signature of the `on_disconnected` callback.
-
-  * If `recorder` was passed to `attach/2` and the "Record stream?" checkbox ticked,
-    the second argument contains the result of calling `ExWebRTC.Recorder.end_tracks/2`.
-    See `t:ExWebRTC.Recorder.end_tracks_ok_result/0` for more info.
-  * Otherwise, the second argument is `nil` and can be ignored.
+  Called when WebRTC has disconnected.
   """
-  @type on_disconnected :: (publisher_id :: String.t(),
-                            ExWebRTC.Recorder.end_tracks_ok_result()
-                            | nil ->
-                              any())
+  @type on_disconnected :: (publisher_id :: String.t() -> any())
+
+  @typedoc """
+  Called when recorder finishes stream recording.
+
+  For exact meaning of the second argument, refer to `t:ExWebRTC.Recorder.end_tracks_ok_result/0`.
+  """
+  @type on_recording_finished :: (publisher_id :: String.t(), Recorder.end_tracks_ok_result() ->
+                                    any())
 
   @type on_packet ::
           (publisher_id :: String.t(),
@@ -138,14 +141,20 @@ defmodule LiveExWebRTC.Publisher do
             pc: nil,
             streaming?: false,
             simulcast_supported?: nil,
+            # record checkbox status
             record?: false,
+            # whether recorings are allowed or not
+            recordings?: true,
+            # recorder instance
+            recorder: nil,
+            recorder_opts: [],
             audio_track: nil,
             video_track: nil,
             on_packet: nil,
             on_connected: nil,
             on_disconnected: nil,
+            on_recording_finished: nil,
             pubsub: nil,
-            recorder: nil,
             ice_servers: nil,
             ice_ip_filter: nil,
             ice_port_range: nil,
@@ -185,10 +194,12 @@ defmodule LiveExWebRTC.Publisher do
   * `id` - publisher id. This is typically your user id (if there is users database).
   It is used to identify live view and generated HTML elements.
   * `pubsub` - a pubsub that publisher live view will use for broadcasting audio and video packets received from a browser. See module doc for more info.
-  * `recorder` - optional `ExWebRTC.Recorder` instance that publisher live view will use for recording the stream.
+  * `recordings?` - whether to allow for recordings or not. Defaults to true.
     See module doc and `t:on_disconnected/0` for more info.
+  * `recorder_opts` - a list of options that will be passed to the recorder. In particular, they can contain S3 config where recordings will be uploaded. See `t:ExWebRTC.Recorder.option/0` for more.
   * `on_connected` - callback called when the underlying peer connection changes its state to the `:connected`. See `t:on_connected/0`.
   * `on_disconnected` - callback called when the underlying peer connection process terminates. See `t:on_disconnected/0`.
+  * `on_recording_finished` - callback called when the stream recording has finised. See `t:on_recording_finished/0`.
   * `on_packet` - callback called for each audio and video RTP packet. Can be used to modify the packet before publishing it on a pubsub. See `t:on_packet/0`.
   * `ice_servers` - a list of `t:ExWebRTC.PeerConnection.Configuration.ice_server/0`,
   * `ice_ip_filter` - `t:ExICE.ICEAgent.ip_filter/0`,
@@ -204,10 +215,12 @@ defmodule LiveExWebRTC.Publisher do
         :id,
         :name,
         :pubsub,
-        :recorder,
+        :recordings?,
+        :recorder_opts,
         :on_packet,
         :on_connected,
         :on_disconnected,
+        :on_recording_finished,
         :ice_servers,
         :ice_ip_filter,
         :ice_port_range,
@@ -219,10 +232,12 @@ defmodule LiveExWebRTC.Publisher do
     publisher = %Publisher{
       id: Keyword.fetch!(opts, :id),
       pubsub: Keyword.fetch!(opts, :pubsub),
-      recorder: Keyword.get(opts, :recorder),
+      recordings?: Keyword.get(opts, :recordings?, true),
+      recorder_opts: Keyword.get(opts, :recorder_opts, []),
       on_packet: Keyword.get(opts, :on_packet),
       on_connected: Keyword.get(opts, :on_connected),
       on_disconnected: Keyword.get(opts, :on_disconnected),
+      on_recording_finished: Keyword.get(opts, :on_recording_finished),
       ice_servers: Keyword.get(opts, :ice_servers, [%{urls: "stun:stun.l.google.com:19302"}]),
       ice_ip_filter: Keyword.get(opts, :ice_ip_filter),
       ice_port_range: Keyword.get(opts, :ice_port_range),
@@ -231,8 +246,8 @@ defmodule LiveExWebRTC.Publisher do
       pc_genserver_opts: Keyword.get(opts, :pc_genserver_opts, [])
     }
 
-    # Check the "Record stream?" checkbox by default if recorder was configured
-    record? = publisher.recorder != nil
+    # Check the "Record stream?" checkbox by default if recordings are allowed 
+    record? = publisher.recordings? == true
 
     socket
     |> assign(publisher: %Publisher{publisher | record?: record?})
@@ -434,16 +449,27 @@ defmodule LiveExWebRTC.Publisher do
               </div>
             </div>
           </div>
-          <div :if={@publisher.recorder} class="flex gap-2.5 items-center">
-            <label for="lex-record-stream">Record stream:</label>
-            <input
-              type="checkbox"
-              phx-click="record-stream-change"
-              id="lex-record-stream"
-              class="rounded-full"
-              checked={@publisher.record?}
-            />
-          </div>
+          <%= if @publisher.recordings? do %>
+            <div class="flex gap-2.5 items-center">
+              <label for="lex-record-stream">Record stream</label>
+              <input
+                type="checkbox"
+                phx-click="record-stream-change"
+                id="lex-record-stream"
+                class="rounded-full"
+                checked={@publisher.record?}
+              />
+            </div>
+          <% else %>
+            <div class="flex gap-2.5 items-center">
+              <label for="lex-record-stream">Record stream</label>
+              <input type="checkbox" class="rounded-full bg-gray-300" disabled />
+            </div>
+            <p class="flex gap-2 text-sm leading-6 text-rose-600">
+              <.icon name="hero-exclamation-circle-mini" class="mt-0.5 h-5 w-5 flex-none" />
+              Recordings disabled by the server.
+            </p>
+          <% end %>
           <div id="lex-videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 pt-2.5">
             <video
               id="lex-preview-player"
@@ -618,23 +644,35 @@ defmodule LiveExWebRTC.Publisher do
         {:DOWN, _ref, :process, pc, _reason},
         %{assigns: %{publisher: %{pc: pc} = pub}} = socket
       ) do
-    recorder_result =
-      if pub.record? do
+    if pub.record? do
+      recorder_result =
         Recorder.end_tracks(pub.recorder, [pub.audio_track.id, pub.video_track.id])
-      end
 
-    if pub.on_disconnected, do: pub.on_disconnected.(pub.id, recorder_result)
+      if pub.on_recording_finished, do: pub.on_recording_finished.(pub.id, recorder_result)
+    end
 
-    {:noreply,
-     socket
-     |> assign(publisher: %Publisher{pub | streaming?: false})}
+    if pub.on_disconnected, do: pub.on_disconnected.(pub.id)
+
+    {:noreply, assign(socket, publisher: %Publisher{pub | streaming?: false})}
   end
 
   @impl true
   def handle_event("start-streaming", _, socket) do
+    publisher = socket.assigns.publisher
+
+    recorder =
+      if publisher.record? == true and publisher.recorder == nil do
+        {:ok, recorder} = Recorder.start_link(socket.assigns.publisher.recorder_opts)
+        recorder
+      else
+        publisher.recorder
+      end
+
+    publisher = %Publisher{socket.assigns.publisher | streaming?: true, recorder: recorder}
+
     {:noreply,
      socket
-     |> assign(publisher: %Publisher{socket.assigns.publisher | streaming?: true})
+     |> assign(publisher: publisher)
      |> push_event("start-streaming", %{})}
   end
 
