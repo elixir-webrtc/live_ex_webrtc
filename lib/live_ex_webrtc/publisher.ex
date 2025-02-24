@@ -147,6 +147,7 @@ defmodule LiveExWebRTC.Publisher do
             recordings?: true,
             # recorder instance
             recorder: nil,
+            recorder_opts: [],
             audio_track: nil,
             video_track: nil,
             on_packet: nil,
@@ -195,6 +196,7 @@ defmodule LiveExWebRTC.Publisher do
   * `pubsub` - a pubsub that publisher live view will use for broadcasting audio and video packets received from a browser. See module doc for more info.
   * `recordings?` - whether to allow for recordings or not. Defaults to true.
     See module doc and `t:on_disconnected/0` for more info.
+  * `recorder_opts` - a list of options that will be passed to the recorder. In particular, they can contain S3 config where recordings will be uploaded. See `t:ExWebRTC.Recorder.option/0` for more.
   * `on_connected` - callback called when the underlying peer connection changes its state to the `:connected`. See `t:on_connected/0`.
   * `on_disconnected` - callback called when the underlying peer connection process terminates. See `t:on_disconnected/0`.
   * `on_recording_finished` - callback called when the stream recording has finised. See `t:on_recording_finished/0`.
@@ -214,6 +216,7 @@ defmodule LiveExWebRTC.Publisher do
         :name,
         :pubsub,
         :recordings?,
+        :recorder_opts,
         :on_packet,
         :on_connected,
         :on_disconnected,
@@ -230,6 +233,7 @@ defmodule LiveExWebRTC.Publisher do
       id: Keyword.fetch!(opts, :id),
       pubsub: Keyword.fetch!(opts, :pubsub),
       recordings?: Keyword.get(opts, :recordings?, true),
+      recorder_opts: Keyword.get(opts, :recorder_opts, []),
       on_packet: Keyword.get(opts, :on_packet),
       on_connected: Keyword.get(opts, :on_connected),
       on_disconnected: Keyword.get(opts, :on_disconnected),
@@ -243,7 +247,7 @@ defmodule LiveExWebRTC.Publisher do
     }
 
     # Check the "Record stream?" checkbox by default if recordings are allowed 
-    record? = publisher.recordings? != nil
+    record? = publisher.recordings? == true
 
     socket
     |> assign(publisher: %Publisher{publisher | record?: record?})
@@ -658,7 +662,7 @@ defmodule LiveExWebRTC.Publisher do
 
     recorder =
       if publisher.record? == true and publisher.recorder == nil do
-        {:ok, recorder} = Recorder.start_link()
+        {:ok, recorder} = Recorder.start_link(socket.assigns.publisher.recorder_opts)
         recorder
       else
         publisher.recorder
