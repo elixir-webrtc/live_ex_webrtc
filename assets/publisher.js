@@ -32,6 +32,8 @@ export function createPublisherHook(iceServers = []) {
       view.videoApplyButton = document.getElementById("lex-video-apply-button");
       view.button = document.getElementById("lex-button");
 
+      view.simulcast = document.getElementById("lex-simulcast");
+
       view.audioDevices.onchange = function () {
         view.setupStream(view);
       };
@@ -95,6 +97,7 @@ export function createPublisherHook(iceServers = []) {
       view.audioApplyButton.disabled = true;
       view.videoApplyButton.disabled = true;
       view.bitrate.disabled = true;
+      view.simulcast.disabled = true;
       // Button present only when Recorder is used
       if (view.recordStream) view.recordStream.disabled = true;
     },
@@ -111,6 +114,7 @@ export function createPublisherHook(iceServers = []) {
       view.audioApplyButton.disabled = false;
       view.videoApplyButton.disabled = false;
       view.bitrate.disabled = false;
+      view.simulcast.disabled = false;
       // See above
       if (view.recordStream) view.recordStream.disabled = false;
     },
@@ -204,78 +208,10 @@ export function createPublisherHook(iceServers = []) {
             view.time.innerText = view.toHHMMSS(new Date() - view.startTime);
 
             const stats = await view.pc.getStats(null);
-            let bitrate;
-
-            stats.forEach((report) => {
-              if (report.type === "outbound-rtp" && report.kind === "video") {
-                if (!view.lastVideoReport) {
-                  bitrate = (report.bytesSent * 8) / 1000;
-                } else {
-                  const timeDiff =
-                    (report.timestamp - view.lastVideoReport.timestamp) / 1000;
-                  if (timeDiff == 0) {
-                    // this should never happen as we are getting stats every second
-                    bitrate = 0;
-                  } else {
-                    bitrate =
-                      ((report.bytesSent - view.lastVideoReport.bytesSent) *
-                        8) /
-                      timeDiff;
-                  }
-                }
-
-                view.videoBitrate.innerText = (bitrate / 1000).toFixed();
-                view.lastVideoReport = report;
-              } else if (
-                report.type === "outbound-rtp" &&
-                report.kind === "audio"
-              ) {
-                if (!view.lastAudioReport) {
-                  bitrate = report.bytesSent;
-                } else {
-                  const timeDiff =
-                    (report.timestamp - view.lastAudioReport.timestamp) / 1000;
-                  if (timeDiff == 0) {
-                    // this should never happen as we are getting stats every second
-                    bitrate = 0;
-                  } else {
-                    bitrate =
-                      ((report.bytesSent - view.lastAudioReport.bytesSent) *
-                        8) /
-                      timeDiff;
-                  }
-                }
-
-                view.audioBitrate.innerText = (bitrate / 1000).toFixed();
-                view.lastAudioReport = report;
-              }
-            });
-
-            // calculate packet loss
-            if (!view.lastAudioReport || !view.lastVideoReport) {
-              view.packetLoss.innerText = 0;
-            } else {
-              const packetsSent =
-                view.lastVideoReport.packetsSent +
-                view.lastAudioReport.packetsSent;
-              const rtxPacketsSent =
-                view.lastVideoReport.retransmittedPacketsSent +
-                view.lastAudioReport.retransmittedPacketsSent;
-              const nackReceived =
-                view.lastVideoReport.nackCount + view.lastAudioReport.nackCount;
-
-              if (nackReceived == 0) {
-                view.packetLoss.innerText = 0;
-              } else {
-                view.packetLoss.innerText = (
-                  (nackReceived / (packetsSent - rtxPacketsSent)) *
-                  100
-                ).toFixed();
-              }
-            }
+            view.processStats(view, stats);
           }, 1000);
         } else if (view.pc.connectionState === "failed") {
-          view.pushEvent("stop-streaming", {reason: "failed"})
+          view.pushEvent("stop-streaming", { reason: "failed" });
           view.stopStreaming(view);
         }
       };
@@ -285,6 +221,144 @@ export function createPublisherHook(iceServers = []) {
       };
 
       view.pc.addTrack(view.localStream.getAudioTracks()[0], view.localStream);
+
+      if (view.simulcast.checked === true) {
+        view.addSimulcastVideo(view);
+      } else {
+        view.addNormalVideo(view);
+      }
+
+      const offer = await view.pc.createOffer();
+      await view.pc.setLocalDescription(offer);
+
+      view.pushEventTo(view.el, "offer", offer);
+    },
+
+    processStats(view, stats) {
+      let videoBytesSent = 0;
+      let videoPacketsSent = 0;
+      let videoNack = 0;
+      let audioBytesSent = 0;
+      let audioPacketsSent = 0;
+      let audioNack = 0;
+
+      let statsTimestamp;
+      stats.forEach((report) => {
+        if (!statsTimestamp) statsTimestamp = report.timestamp;
+
+        if (report.type === "outbound-rtp" && report.kind === "video") {
+          videoBytesSent += report.bytesSent;
+          videoPacketsSent += report.packetsSent;
+          videoNack += report.nackCount;
+        } else if (report.type === "outbound-rtp" && report.kind === "audio") {
+          audioBytesSent += report.bytesSent;
+          audioPacketsSent += report.packetsSent;
+          audioNack += report.nackCount;
+        }
+      });
+
+      const timeDiff = (statsTimestamp - view.lastStatsTimestamp) / 1000;
+
+      let bitrate;
+
+      if (!view.lastVideoBytesSent) {
+        bitrate = (videoBytesSent * 8) / 1000;
+      } else {
+        if (timeDiff == 0) {
+          // this should never happen as we are getting stats every second
+          bitrate = 0;
+        } else {
+          bitrate = ((videoBytesSent - view.lastVideoBytesSent) * 8) / timeDiff;
+        }
+      }
+
+      view.videoBitrate.innerText = (bitrate / 1000).toFixed();
+
+      if (!view.lastAudioBytesSent) {
+        bitrate = (audioBytesSent * 8) / 1000;
+      } else {
+        if (timeDiff == 0) {
+          // this should never happen as we are getting stats every second
+          bitrate = 0;
+        } else {
+          bitrate = ((audioBytesSent - view.lastAudioBytesSent) * 8) / timeDiff;
+        }
+      }
+
+      view.audioBitrate.innerText = (bitrate / 1000).toFixed();
+
+      // calculate packet loss
+      if (!view.lastAudioPacketsSent || !view.lastVideoPacketsSent) {
+        view.packetLoss.innerText = 0;
+      } else {
+        const packetsSent =
+          videoPacketsSent +
+          audioPacketsSent -
+          view.lastAudioPacketsSent -
+          view.lastVideoPacketsSent;
+
+        const nack =
+          videoNack + audioNack - view.lastVideoNack - view.lastAudioNack;
+
+        if (packetsSent == 0 || timeDiff == 0) {
+          view.packetLoss.innerText = 0;
+        } else {
+          view.packetLoss.innerText = (
+            ((nack / packetsSent) * 100) /
+            timeDiff
+          ).toFixed(2);
+        }
+      }
+
+      view.lastVideoBytesSent = videoBytesSent;
+      view.lastVideoPacketsSent = videoPacketsSent;
+      view.lastVideoNack = videoNack;
+      view.lastAudioBytesSent = audioBytesSent;
+      view.lastAudioPacketsSent = audioPacketsSent;
+      view.lastAudioNack = audioNack;
+      view.lastStatsTimestamp = statsTimestamp;
+    },
+
+    addSimulcastVideo(view) {
+      const videoTrack = view.localStream.getVideoTracks()[0];
+      const settings = videoTrack.getSettings();
+      const maxTotalBitrate = view.bitrate.value * 1024;
+
+      // This is based on:
+      // https://source.chromium.org/chromium/chromium/src/+/main:third_party/webrtc/video/config/simulcast.cc;l=79?q=simulcast.cc
+      let sendEncodings;
+      if (settings.width >= 960 && settings.height >= 540) {
+        // we do a very simple calculation: maxTotalBitrate = x + 1/4x + 1/16x
+        // x - bitrate for base resolution
+        // 1/4x- bitrate for resolution scaled down by 2 - we decrese total number of pixels by 4 (width/2*height/2)
+        // 1/16x- bitrate for resolution scaled down by 4 - we decrese total number of pixels by 16 (width/4*height/4)
+        const maxHBitrate = Math.floor((16 * maxTotalBitrate) / 21);
+        const maxMBitrate = Math.floor(maxHBitrate / 4);
+        const maxLBitrate = Math.floor(maxHBitrate / 16);
+        sendEncodings = [
+          { rid: "h", maxBitrate: maxHBitrate },
+          { rid: "m", scaleResolutionDownBy: 2, maxBitrate: maxMBitrate },
+          { rid: "l", scaleResolutionDownBy: 4, maxBitrate: maxLBitrate },
+        ];
+      } else if (settings.width >= 480 && settings.height >= 270) {
+        // maxTotalBitate = x + 1/4x
+        const maxHBitrate = Math.floor((4 * maxTotalBitrate) / 5);
+        const maxMBitrate = Math.floor(maxHBitrate / 4);
+        sendEncodings = [
+          { rid: "h", maxBitrate: maxHBitrate },
+          { rid: "m", scaleResolutionDownBy: 2, maxBitrate: maxMBitrate },
+        ];
+      } else {
+        sendEncodings = [{ rid: "h", maxBitrate: maxTotalBitrate }];
+      }
+
+      view.pc.addTransceiver(view.localStream.getVideoTracks()[0], {
+        streams: [view.localStream],
+        sendEncodings: sendEncodings,
+      });
+    },
+
+    addNormalVideo(view) {
       view.pc.addTrack(view.localStream.getVideoTracks()[0], view.localStream);
 
       // set max bitrate
@@ -296,11 +370,6 @@ export function createPublisherHook(iceServers = []) {
           params.encodings[0].maxBitrate = view.bitrate.value * 1024;
           await sender.setParameters(params);
         });
-
-      const offer = await view.pc.createOffer();
-      await view.pc.setLocalDescription(offer);
-
-      view.pushEventTo(view.el, "offer", offer);
     },
 
     stopStreaming(view) {
@@ -318,6 +387,12 @@ export function createPublisherHook(iceServers = []) {
       view.startTime = undefined;
       view.lastAudioReport = undefined;
       view.lastVideoReport = undefined;
+      view.lastVideoBytesSent = 0;
+      view.lastVideoPacketsSent = 0;
+      view.lastVideoNack = 0;
+      view.lastAudioBytesSent = 0;
+      view.lastAudioPacketsSent = 0;
+      view.lastAudioNack = 0;
       view.audioBitrate.innerText = 0;
       view.videoBitrate.innerText = 0;
       view.packetLoss.innerText = 0;
