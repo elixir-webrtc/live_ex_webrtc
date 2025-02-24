@@ -400,7 +400,7 @@ defmodule LiveExWebRTC.Publisher do
                   <input
                     type="text"
                     id="lex-fps"
-                    value="24"
+                    value="30"
                     class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
                   />
                 </div>
