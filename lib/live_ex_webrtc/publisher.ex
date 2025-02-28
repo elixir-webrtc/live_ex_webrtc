@@ -293,7 +293,7 @@ defmodule LiveExWebRTC.Publisher do
             </label>
             <select
               id="lex-audio-devices"
-              class="rounded-lg text-sm border-violet-800 disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+              class="rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
             >
             </select>
           </div>
@@ -303,7 +303,7 @@ defmodule LiveExWebRTC.Publisher do
             </label>
             <select
               id="lex-video-devices"
-              class="rounded-lg text-sm border-violet-800 disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+              class="rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
             >
             </select>
           </div>
@@ -317,14 +317,20 @@ defmodule LiveExWebRTC.Publisher do
           </div>
         </div>
         <div class="flex items-stretch gap-4">
-          <button class="border border-indigo-700 px-4 py-2 rounded-lg text-indigo-800 flex items-center justify-center gap-2">
+          <button
+            class="border border-indigo-700 px-4 py-2 rounded-lg text-indigo-800 flex items-center justify-center gap-2"
+            phx-click="toggle_settings_modal"
+          >
             <.icon name="hero-cog-6-tooth" class="w-4 h-4" />
           </button>
           <button class="bg-indigo-800 flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg">
             <.icon name="hero-play" class="w-4 h-4" /> Start
           </button>
         </div>
-        <%!-- <div id="lex-videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 pt-2.5 hidden">
+        <.modal id="settings-modal" show={@is_settings_modal_shown}>
+          <h1>Hello world</h1>
+        </.modal>
+        <div id="lex-videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 pt-2.5 hidden">
           <div
             id="lex-media-devices-wrapper"
             phx-update="ignore"
@@ -559,7 +565,7 @@ defmodule LiveExWebRTC.Publisher do
           >
             Start streaming
           </button>
-        </div> --%>
+        </div>
       </div>
     </div>
     """
@@ -567,7 +573,10 @@ defmodule LiveExWebRTC.Publisher do
 
   @impl true
   def mount(_params, %{"publisher_id" => pub_id}, socket) do
-    socket = assign(socket, publisher: nil)
+    socket =
+      socket
+      |> assign(publisher: nil)
+      |> assign(is_settings_modal_shown: true)
 
     if connected?(socket) do
       ref = make_ref()
@@ -588,6 +597,11 @@ defmodule LiveExWebRTC.Publisher do
     else
       {:ok, socket}
     end
+  end
+
+  def handle_event("toggle_settings_modal", _, socket) do
+    dbg(socket.assigns.is_settings_modal_shown)
+    {:noreply, assign(socket, is_settings_modal_shown: !socket.assigns.is_settings_modal_shown)}
   end
 
   @impl true
