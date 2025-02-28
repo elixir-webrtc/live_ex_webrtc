@@ -349,7 +349,7 @@ defmodule LiveExWebRTC.Publisher do
           <div id="lex-status" class="w-3 h-3 rounded-full bg-red-500"></div>
         </div>
       </div>
-      <.modal id="settings-modal" show>
+      <.modal id="settings-modal">
         <div class="flex items-stretch justify-between text-sm">
           <div class="text-[#606060] flex flex-col gap-4">
             <div class="font-bold text-[#0d0d0d]">Audio Settings</div>
