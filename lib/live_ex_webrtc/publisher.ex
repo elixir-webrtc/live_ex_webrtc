@@ -246,7 +246,7 @@ defmodule LiveExWebRTC.Publisher do
       pc_genserver_opts: Keyword.get(opts, :pc_genserver_opts, [])
     }
 
-    # Check the "Record stream?" checkbox by default if recordings are allowed 
+    # Check the "Record stream?" checkbox by default if recordings are allowed
     record? = publisher.recordings? == true
 
     socket
@@ -275,8 +275,56 @@ defmodule LiveExWebRTC.Publisher do
   def render(assigns) do
     ~H"""
     <div id={@publisher.id} phx-hook="Publisher" class="h-full w-full flex justify-between gap-6">
-      <div class="w-full flex flex-col">
+      <div class="w-full flex flex-col gap-2">
         <div class="w-full flex flex-col gap-4">
+          <video
+            id="lex-preview-player"
+            class="m-auto rounded-lg bg-black h-full"
+            autoplay
+            controls
+            muted
+          >
+          </video>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="flex gap-2 items-center">
+            <label for="lex-audio-devices" class="">
+              <.icon name="hero-microphone" class="w-4 h-4" />
+            </label>
+            <select
+              id="lex-audio-devices"
+              class="rounded-lg text-sm border-violet-800 disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+            >
+            </select>
+          </div>
+          <div class="flex gap-2 items-center">
+            <label for="lex-video-devices" class="">
+              <.icon name="hero-video-camera" class="w-4 h-4" />
+            </label>
+            <select
+              id="lex-video-devices"
+              class="rounded-lg text-sm border-violet-800 disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+            >
+            </select>
+          </div>
+          <div class="flex gap-2 items-center">
+            <label for="record-stream-toggle">Record stream</label>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" class="sr-only peer appearance-none" id="record-stream-toggle" />
+              <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500">
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="flex items-stretch gap-4">
+          <button class="border border-indigo-700 px-4 py-2 rounded-lg text-indigo-800 flex items-center justify-center gap-2">
+            <.icon name="hero-cog-6-tooth" class="w-4 h-4" />
+          </button>
+          <button class="bg-indigo-800 flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg">
+            <.icon name="hero-play" class="w-4 h-4" /> Start
+          </button>
+        </div>
+        <%!-- <div id="lex-videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 pt-2.5 hidden">
           <div
             id="lex-media-devices-wrapper"
             phx-update="ignore"
@@ -470,16 +518,6 @@ defmodule LiveExWebRTC.Publisher do
               Recordings disabled by the server.
             </p>
           <% end %>
-          <div id="lex-videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 pt-2.5">
-            <video
-              id="lex-preview-player"
-              class="m-auto rounded-lg bg-black h-full"
-              autoplay
-              controls
-              muted
-            >
-            </video>
-          </div>
           <div id="lex-stats" , class="flex justify-between w-full text-[#606060] ">
             <div class="flex p-1 gap-4">
               <div class="flex flex-col">
@@ -504,7 +542,7 @@ defmodule LiveExWebRTC.Publisher do
             </div>
           </div>
         </div>
-        <div :if={@publisher.streaming?} class="py-2.">
+        <div :if={@publisher.streaming?} class="py-2.5 hidden">
           <button
             id="lex-button"
             class="rounded-lg w-full px-2.5 py-2.5 bg-brand/100 disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold"
@@ -513,7 +551,7 @@ defmodule LiveExWebRTC.Publisher do
             Stop streaming
           </button>
         </div>
-        <div :if={!@publisher.streaming?} class="py-2.5">
+        <div :if={!@publisher.streaming?} class="py-2.5 hidden">
           <button
             id="lex-button"
             class="rounded-lg w-full px-2.5 py-2.5 bg-brand/100 disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold"
@@ -521,7 +559,7 @@ defmodule LiveExWebRTC.Publisher do
           >
             Start streaming
           </button>
-        </div>
+        </div> --%>
       </div>
     </div>
     """
