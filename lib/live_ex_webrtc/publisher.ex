@@ -274,123 +274,86 @@ defmodule LiveExWebRTC.Publisher do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={@publisher.id} phx-hook="Publisher" class="h-full w-full flex justify-between gap-6">
-      <div class="w-full flex flex-col gap-2">
-        <div class="w-full flex flex-col gap-4">
-          <video
-            id="lex-preview-player"
-            class="m-auto rounded-lg bg-black h-full"
-            autoplay
-            controls
-            muted
+    <div id={@publisher.id} phx-hook="Publisher" class="h-full w-full flex flex-col gap-2">
+      <div class="flex-grow w-full flex flex-col gap-4">
+        <video
+          id="lex-preview-player"
+          class="m-auto rounded-lg bg-black h-full"
+          autoplay
+          controls
+          muted
+        >
+        </video>
+      </div>
+      <div class="flex items-center justify-between">
+        <div id="lex-audio-devices-wrapper" class="flex gap-2 items-center" phx-update="ignore">
+          <label for="lex-audio-devices" class="">
+            <.icon name="hero-microphone" class="w-4 h-4" />
+          </label>
+          <select
+            id="lex-audio-devices"
+            class="rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-900 focus:outline-none focus:ring-0"
           >
-          </video>
+          </select>
         </div>
-        <div class="flex items-center justify-between">
-          <div class="flex gap-2 items-center">
-            <label for="lex-audio-devices" class="">
-              <.icon name="hero-microphone" class="w-4 h-4" />
-            </label>
-            <select
-              id="lex-audio-devices"
-              class="rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
-            >
-            </select>
-          </div>
-          <div class="flex gap-2 items-center">
-            <label for="lex-video-devices" class="">
-              <.icon name="hero-video-camera" class="w-4 h-4" />
-            </label>
-            <select
-              id="lex-video-devices"
-              class="rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
-            >
-            </select>
-          </div>
-          <div class="flex gap-2 items-center">
-            <label for="record-stream-toggle">Record stream</label>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" class="sr-only peer appearance-none" id="record-stream-toggle" />
-              <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500">
-              </div>
-            </label>
-          </div>
+        <div id="lex-video-devices-wrapper" class="flex gap-2 items-center" phx-update="ignore">
+          <label for="lex-video-devices" class="">
+            <.icon name="hero-video-camera" class="w-4 h-4" />
+          </label>
+          <select
+            id="lex-video-devices"
+            class="rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-900 focus:outline-none focus:ring-0"
+          >
+          </select>
         </div>
-        <div class="flex items-stretch gap-4">
-          <button
-            class="border border-indigo-700 px-4 py-2 rounded-lg text-indigo-800 flex items-center justify-center gap-2"
-            phx-click="toggle_settings_modal"
-          >
-            <.icon name="hero-cog-6-tooth" class="w-4 h-4" />
-          </button>
-          <button class="bg-indigo-800 flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg">
-            <.icon name="hero-play" class="w-4 h-4" /> Start
-          </button>
+        <form class="flex gap-2 items-center">
+          <label for="lex-record-stream">Record stream</label>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              class="sr-only peer appearance-none"
+              id="lex-record-stream"
+              checked={@publisher.record?}
+              phx-change="record-stream-change"
+              disabled={!@publisher.recordings?}
+            />
+            <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 peer-disabled:opacity-50">
+            </div>
+          </label>
+        </form>
+      </div>
+      <div class="flex items-stretch gap-4">
+        <button
+          class="border border-indigo-700 px-4 py-2 rounded-lg text-indigo-800 flex items-center justify-center gap-2"
+          phx-click={show_modal("settings-modal")}
+        >
+          <.icon name="hero-cog-6-tooth" class="w-4 h-4" />
+        </button>
+        <button
+          :if={!@publisher.streaming?}
+          id="lex-button"
+          class="bg-indigo-800 flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg"
+          phx-click="start-streaming"
+        >
+          <.icon name="hero-play" class="w-4 h-4" /> Start streaming
+        </button>
+        <button
+          :if={@publisher.streaming?}
+          id="lex-button"
+          class="bg-rose-500 flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg"
+          phx-click="stop-streaming"
+        >
+          <.icon name="hero-stop" class="w-4 h-4" /> Stop streaming
+        </button>
+        <div class="p-1 flex items-center">
+          <div id="lex-status" class="w-3 h-3 rounded-full bg-red-500"></div>
         </div>
-        <.modal id="settings-modal" show={@is_settings_modal_shown}>
-          <h1>Hello world</h1>
-        </.modal>
-        <div id="lex-videoplayer-wrapper" class="flex flex-1 flex-col min-h-0 pt-2.5 hidden">
-          <div
-            id="lex-media-devices-wrapper"
-            phx-update="ignore"
-            class="cursor-pointer bg-brand/10 rounded-md border border-brand/30"
-          >
-            <div
-              phx-click={
-                Phoenix.LiveView.JS.toggle_class("hidden", to: "#lex-media-devices")
-                |> Phoenix.LiveView.JS.toggle_class("rotate-180",
-                  to: "#lex-media-devices-wrapper .chevron"
-                )
-              }
-              class="px-4 py-3 flex items-center justify-between"
-            >
-              <div class="font-bold text-[#0d0d0d] py-2.5">
-                Devices
-              </div>
-              <div class="chevron transition-all duration-300">
-                <.icon name="hero-chevron-down" />
-              </div>
-            </div>
-            <div id="lex-media-devices" class="hidden text-[#606060] flex flex-col gap-6 px-4 pb-3">
-              <div class="flex gap-2.5 items-center">
-                <label for="lex-audio-devices" class="">Audio Device</label>
-                <select
-                  id="lex-audio-devices"
-                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
-                >
-                </select>
-              </div>
-              <div class="flex gap-2.5 items-center">
-                <label for="lex-video-devices" class="">Video Device</label>
-                <select
-                  id="lex-video-devices"
-                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
-                >
-                </select>
-              </div>
-            </div>
-          </div>
-          <div
-            id="lex-audio-settings-wrapper"
-            phx-update="ignore"
-            class="cursor-pointer bg-brand/10 rounded-md border border-brand/30"
-          >
-            <div
-              phx-click={
-                Phoenix.LiveView.JS.toggle_class("hidden", to: "#lex-audio-settings")
-                |> Phoenix.LiveView.JS.toggle_class("rotate-180",
-                  to: "#lex-audio-settings-wrapper .chevron"
-                )
-              }
-              class="px-4 py-3 flex items-center justify-between"
-            >
-              <div class="font-bold text-[#0d0d0d] py-2.5">Audio Settings</div>
-              <div class="chevron transition-all duration-300">
-                <.icon name="hero-chevron-down" />
-              </div>
-            </div>
-            <div id="lex-audio-settings" class="hidden text-[#606060] flex flex-col gap-6 px-4 pb-3">
+      </div>
+      <.modal id="settings-modal" show>
+        <div class="flex items-stretch justify-between text-sm">
+          <div class="text-[#606060] flex flex-col gap-4">
+            <div class="font-bold text-[#0d0d0d]">Audio Settings</div>
+            <div class="flex flex-col gap-4">
               <div class="flex gap-2.5 items-center">
                 <label for="lex-echo-cancellation">Echo Cancellation</label>
                 <input type="checkbox" id="lex-echo-cancellation" class="rounded-full" checked />
@@ -403,180 +366,102 @@ defmodule LiveExWebRTC.Publisher do
                 <label for="lex-noise-suppression">Noise Suppression</label>
                 <input type="checkbox" id="lex-noise-suppression" class="rounded-full" checked />
               </div>
-              <button
-                id="lex-audio-apply-button"
-                class="rounded-lg px-10 py-2.5 bg-brand disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold"
-                disabled
-              >
-                Apply
-              </button>
             </div>
           </div>
-          <div
-            id="lex-video-settings-wrapper"
-            class="cursor-pointer bg-brand/10 rounded-md border border-brand/30"
-          >
-            <div
-              phx-click={
-                Phoenix.LiveView.JS.toggle_class("hidden",
-                  to: "#lex-video-settings"
-                )
-                |> Phoenix.LiveView.JS.toggle_class("rotate-180",
-                  to: "#lex-video-settings-wrapper .chevron"
-                )
-              }
-              class="px-4 py-3 flex items-center justify-between"
-            >
-              <div class="font-bold text-[#0d0d0d] py-2.5">Video Settings</div>
-              <div class="chevron transition-all duration-300">
-                <.icon name="hero-chevron-down" />
+          <div class="transition-all duration-700 text-[#606060] flex flex-col gap-2">
+            <div class="font-bold text-[#0d0d0d]">Video Settings</div>
+            <div id="lex-video-static" phx-update="ignore" class="flex flex-col gap-2 items-end">
+              <div class="flex items-center gap-2">
+                <label for="lex-width">Width</label>
+                <input
+                  type="text"
+                  id="lex-width"
+                  value="1280"
+                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+                />
               </div>
-            </div>
-            <div
-              id="lex-video-settings"
-              class="hidden transition-all duration-700 text-[#606060] flex flex-col gap-6 px-4 pb-3"
-            >
-              <div id="lex-video-static" phx-update="ignore" class="flex flex-col gap-6">
-                <div id="lex-resolution" class="flex gap-2.5 items-center">
-                  <label for="lex-width">Width</label>
-                  <input
-                    type="text"
-                    id="lex-width"
-                    value="1280"
-                    class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
-                  />
-                  <label for="lex-height">Height</label>
-                  <input
-                    type="text"
-                    id="lex-height"
-                    value="720"
-                    class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
-                  />
-                </div>
-                <div class="flex gap-2.5 items-center">
-                  <label for="lex-fps">FPS</label>
-                  <input
-                    type="text"
-                    id="lex-fps"
-                    value="30"
-                    class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
-                  />
-                </div>
-                <button
-                  id="lex-video-apply-button"
-                  class="rounded-lg px-10 py-2.5 bg-brand disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold"
-                  disabled
-                >
-                  Apply
-                </button>
-                <div class="flex gap-2.5 items-center">
-                  <label for="lex-bitrate">Max Bitrate (kbps)</label>
-                  <input
-                    type="text"
-                    id="lex-bitrate"
-                    value="1500"
-                    class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
-                  />
-                </div>
-                <%= if @publisher.simulcast_supported? do %>
-                  <div class="flex gap-2.5 items-center">
-                    <label for="lex-simulcast">Simulcast</label>
-                    <input type="checkbox" id="lex-simulcast" class="rounded-full" />
-                  </div>
-                <% else %>
-                  <div class="flex flex-col gap-2">
-                    <div class="flex gap-2.5 items-center">
-                      <label for="lex-simulcast">Simulcast</label>
-                      <input
-                        type="checkbox"
-                        id="lex-simulcast"
-                        class="rounded-full bg-gray-300"
-                        disabled
-                      />
-                    </div>
-                    <p class="flex gap-2 text-sm leading-6 text-rose-600">
-                      <.icon name="hero-exclamation-circle-mini" class="mt-0.5 h-5 w-5 flex-none" />
-                      Simulcast requires server to be configured with H264 and/or VP8 codec
-                    </p>
-                  </div>
-                <% end %>
+              <div class="flex items-center gap-2">
+                <label for="lex-height">Height</label>
+                <input
+                  type="text"
+                  id="lex-height"
+                  value="720"
+                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+                />
+              </div>
+              <div class="flex items-center gap-2">
+                <label for="lex-fps">FPS</label>
+                <input
+                  type="text"
+                  id="lex-fps"
+                  value="30"
+                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+                />
               </div>
             </div>
           </div>
-          <%= if @publisher.recordings? do %>
-            <div class="flex gap-2.5 items-center">
-              <label for="lex-record-stream">Record stream</label>
-              <input
-                type="checkbox"
-                phx-click="record-stream-change"
-                id="lex-record-stream"
-                class="rounded-full"
-                checked={@publisher.record?}
-              />
+        </div>
+        <button
+          id="lex-apply-button"
+          class="w-full text-sm my-6 rounded-lg px-10 py-2.5 bg-brand disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold"
+          disabled
+        >
+          Apply
+        </button>
+        <div class="flex text-sm gap-4">
+          <div class="flex items-center gap-2">
+            <label for="lex-bitrate">Max Bitrate (kbps)</label>
+            <input
+              type="text"
+              id="lex-bitrate"
+              value="1500"
+              class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+            />
+          </div>
+          <%= if @publisher.simulcast_supported? do %>
+            <div class="flex gap-2.5 items-center text-sm">
+              <label for="lex-simulcast">Simulcast</label>
+              <input type="checkbox" id="lex-simulcast" class="rounded-full" />
             </div>
           <% else %>
-            <div class="flex gap-2.5 items-center">
-              <label for="lex-record-stream">Record stream</label>
-              <input type="checkbox" class="rounded-full bg-gray-300" disabled />
+            <div class="flex flex-col gap-2 text-sm">
+              <div class="flex gap-2.5 items-center">
+                <label for="lex-simulcast">Simulcast</label>
+                <input type="checkbox" id="lex-simulcast" class="rounded-full bg-gray-300" disabled />
+              </div>
+              <p class="flex gap-2 text-sm leading-6 text-rose-600">
+                <.icon name="hero-exclamation-circle-mini" class="mt-0.5 h-5 w-5 flex-none" />
+                Simulcast requires server to be configured with H264 and/or VP8 codec
+              </p>
             </div>
-            <p class="flex gap-2 text-sm leading-6 text-rose-600">
-              <.icon name="hero-exclamation-circle-mini" class="mt-0.5 h-5 w-5 flex-none" />
-              Recordings disabled by the server.
-            </p>
           <% end %>
-          <div id="lex-stats" , class="flex justify-between w-full text-[#606060] ">
-            <div class="flex p-1 gap-4">
-              <div class="flex flex-col">
-                <label for="lex-audio-bitrate">Audio Bitrate (kbps): </label>
-                <span id="lex-audio-bitrate">0</span>
-              </div>
-              <div class="flex flex-col">
-                <label for="lex-video-bitrate">Video Bitrate (kbps): </label>
-                <span id="lex-video-bitrate">0</span>
-              </div>
-              <div class="flex flex-col">
-                <label for="lex-packet-loss">Packet loss (%): </label>
-                <span id="lex-packet-loss">0</span>
-              </div>
-              <div class="flex flex-col">
-                <label for="lex-time">Time: </label>
-                <span id="lex-time">00:00:00</span>
-              </div>
-            </div>
-            <div class="p-1 flex items-center">
-              <div id="lex-status" class="w-3 h-3 rounded-full bg-red-500"></div>
-            </div>
+        </div>
+        <div id="lex-stats" class="flex justify-between w-full text-[#606060] text-sm mt-6">
+          <div class="flex flex-col">
+            <label for="lex-audio-bitrate">Audio Bitrate (kbps): </label>
+            <span id="lex-audio-bitrate">0</span>
+          </div>
+          <div class="flex flex-col">
+            <label for="lex-video-bitrate">Video Bitrate (kbps): </label>
+            <span id="lex-video-bitrate">0</span>
+          </div>
+          <div class="flex flex-col">
+            <label for="lex-packet-loss">Packet loss (%): </label>
+            <span id="lex-packet-loss">0</span>
+          </div>
+          <div class="flex flex-col">
+            <label for="lex-time">Time: </label>
+            <span id="lex-time">00:00:00</span>
           </div>
         </div>
-        <div :if={@publisher.streaming?} class="py-2.5 hidden">
-          <button
-            id="lex-button"
-            class="rounded-lg w-full px-2.5 py-2.5 bg-brand/100 disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold"
-            phx-click="stop-streaming"
-          >
-            Stop streaming
-          </button>
-        </div>
-        <div :if={!@publisher.streaming?} class="py-2.5 hidden">
-          <button
-            id="lex-button"
-            class="rounded-lg w-full px-2.5 py-2.5 bg-brand/100 disabled:bg-brand/50 hover:bg-brand/90 text-white font-bold"
-            phx-click="start-streaming"
-          >
-            Start streaming
-          </button>
-        </div>
-      </div>
+      </.modal>
     </div>
     """
   end
 
   @impl true
   def mount(_params, %{"publisher_id" => pub_id}, socket) do
-    socket =
-      socket
-      |> assign(publisher: nil)
-      |> assign(is_settings_modal_shown: true)
+    socket = assign(socket, publisher: nil)
 
     if connected?(socket) do
       ref = make_ref()
@@ -597,11 +482,6 @@ defmodule LiveExWebRTC.Publisher do
     else
       {:ok, socket}
     end
-  end
-
-  def handle_event("toggle_settings_modal", _, socket) do
-    dbg(socket.assigns.is_settings_modal_shown)
-    {:noreply, assign(socket, is_settings_modal_shown: !socket.assigns.is_settings_modal_shown)}
   end
 
   @impl true
@@ -739,6 +619,8 @@ defmodule LiveExWebRTC.Publisher do
   @impl true
   def handle_event("record-stream-change", params, socket) do
     record? = params["value"] == "on"
+
+    dbg(record?)
 
     {:noreply,
      socket

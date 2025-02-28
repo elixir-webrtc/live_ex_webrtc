@@ -28,9 +28,10 @@ export function createPublisherHook(iceServers = []) {
       view.status = document.getElementById("lex-status");
       view.time = document.getElementById("lex-time");
 
-      view.audioApplyButton = document.getElementById("lex-audio-apply-button");
-      view.videoApplyButton = document.getElementById("lex-video-apply-button");
+      // view.audioApplyButton = document.getElementById("lex-audio-apply-button");
+      // view.videoApplyButton = document.getElementById("lex-video-apply-button");
       view.button = document.getElementById("lex-button");
+      view.applyButton = document.getElementById("lex-apply-button");
 
       view.simulcast = document.getElementById("lex-simulcast");
 
@@ -42,13 +43,17 @@ export function createPublisherHook(iceServers = []) {
         view.setupStream(view);
       };
 
-      view.audioApplyButton.onclick = function () {
+      view.applyButton.onclick = function () {
         view.setupStream(view);
       };
 
-      view.videoApplyButton.onclick = function () {
-        view.setupStream(view);
-      };
+      // view.audioApplyButton.onclick = function () {
+      //   view.setupStream(view);
+      // };
+
+      // view.videoApplyButton.onclick = function () {
+      //   view.setupStream(view);
+      // };
 
       // handle remote events
       view.handleEvent(`answer-${view.el.id}`, async (answer) => {
@@ -72,8 +77,9 @@ export function createPublisherHook(iceServers = []) {
         try {
           await view.setupStream(view);
           view.button.disabled = false;
-          view.audioApplyButton.disabled = false;
-          view.videoApplyButton.disabled = false;
+          // view.audioApplyButton.disabled = false;
+          // view.videoApplyButton.disabled = false;
+          view.applyButton.disabled = false;
         } catch (error) {
           console.error("Couldn't setup stream, reason:", error.stack);
         }
