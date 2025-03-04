@@ -28,8 +28,6 @@ export function createPublisherHook(iceServers = []) {
       view.status = document.getElementById("lex-status");
       view.time = document.getElementById("lex-time");
 
-      // view.audioApplyButton = document.getElementById("lex-audio-apply-button");
-      // view.videoApplyButton = document.getElementById("lex-video-apply-button");
       view.button = document.getElementById("lex-button");
       view.applyButton = document.getElementById("lex-apply-button");
 
@@ -46,14 +44,6 @@ export function createPublisherHook(iceServers = []) {
       view.applyButton.onclick = function () {
         view.setupStream(view);
       };
-
-      // view.audioApplyButton.onclick = function () {
-      //   view.setupStream(view);
-      // };
-
-      // view.videoApplyButton.onclick = function () {
-      //   view.setupStream(view);
-      // };
 
       // handle remote events
       view.handleEvent(`answer-${view.el.id}`, async (answer) => {
@@ -77,8 +67,6 @@ export function createPublisherHook(iceServers = []) {
         try {
           await view.setupStream(view);
           view.button.disabled = false;
-          // view.audioApplyButton.disabled = false;
-          // view.videoApplyButton.disabled = false;
           view.applyButton.disabled = false;
         } catch (error) {
           console.error("Couldn't setup stream, reason:", error.stack);
@@ -100,10 +88,9 @@ export function createPublisherHook(iceServers = []) {
       view.width.disabled = true;
       view.height.disabled = true;
       view.fps.disabled = true;
-      view.audioApplyButton.disabled = true;
-      view.videoApplyButton.disabled = true;
       view.bitrate.disabled = true;
       view.simulcast.disabled = true;
+      view.applyButton.disabled = true;
       // Button present only when Recorder is used
       if (view.recordStream) view.recordStream.disabled = true;
     },
@@ -117,10 +104,9 @@ export function createPublisherHook(iceServers = []) {
       view.width.disabled = false;
       view.height.disabled = false;
       view.fps.disabled = false;
-      view.audioApplyButton.disabled = false;
-      view.videoApplyButton.disabled = false;
       view.bitrate.disabled = false;
       view.simulcast.disabled = false;
+      view.applyButton.disabled = false;
       // See above
       if (view.recordStream) view.recordStream.disabled = false;
     },

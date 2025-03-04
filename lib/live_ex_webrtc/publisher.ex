@@ -275,10 +275,10 @@ defmodule LiveExWebRTC.Publisher do
   def render(assigns) do
     ~H"""
     <div id={@publisher.id} phx-hook="Publisher" class="h-full w-full flex flex-col gap-2">
-      <div class="flex-grow w-full flex flex-col gap-4">
+      <div class="flex-grow w-full h-[0px] flex flex-col gap-4">
         <video
           id="lex-preview-player"
-          class="m-auto rounded-lg bg-black h-full"
+          class="rounded-lg bg-black h-full object-contain"
           autoplay
           controls
           muted
@@ -286,41 +286,34 @@ defmodule LiveExWebRTC.Publisher do
         </video>
       </div>
       <div class="flex items-center justify-between">
-        <div id="lex-audio-devices-wrapper" class="flex gap-2 items-center" phx-update="ignore">
-          <label for="lex-audio-devices" class="">
+        <div
+          id="lex-audio-devices-wrapper"
+          class="flex gap-2 items-center relative"
+          phx-update="ignore"
+        >
+          <label for="lex-audio-devices" class="absolute left-3 top-[5px] pointer-events-none">
             <.icon name="hero-microphone" class="w-4 h-4" />
           </label>
           <select
             id="lex-audio-devices"
-            class="rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-900 focus:outline-none focus:ring-0"
+            class="pl-9 rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-900 focus:outline-none focus:ring-0"
           >
           </select>
         </div>
-        <div id="lex-video-devices-wrapper" class="flex gap-2 items-center" phx-update="ignore">
-          <label for="lex-video-devices" class="">
+        <div
+          id="lex-video-devices-wrapper"
+          class="flex gap-2 items-center relative"
+          phx-update="ignore"
+        >
+          <label for="lex-video-devices" class="absolute left-3 top-[5px] pointer-events-none">
             <.icon name="hero-video-camera" class="w-4 h-4" />
           </label>
           <select
             id="lex-video-devices"
-            class="rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-900 focus:outline-none focus:ring-0"
+            class="pl-9 rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-900 focus:outline-none focus:ring-0"
           >
           </select>
         </div>
-        <form class="flex gap-2 items-center">
-          <label for="lex-record-stream">Record stream</label>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              class="sr-only peer appearance-none"
-              id="lex-record-stream"
-              checked={@publisher.record?}
-              phx-change="record-stream-change"
-              disabled={!@publisher.recordings?}
-            />
-            <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 peer-disabled:opacity-50">
-            </div>
-          </label>
-        </form>
       </div>
       <div class="flex items-stretch gap-4">
         <button
@@ -345,9 +338,24 @@ defmodule LiveExWebRTC.Publisher do
         >
           <.icon name="hero-stop" class="w-4 h-4" /> Stop streaming
         </button>
-        <div class="p-1 flex items-center">
+        <div class="p-1 flex items-center hidden">
           <div id="lex-status" class="w-3 h-3 rounded-full bg-red-500"></div>
         </div>
+        <form class="flex flex-col gap-1 items-center">
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              class="sr-only peer appearance-none"
+              id="lex-record-stream"
+              checked={@publisher.record?}
+              phx-change="record-stream-change"
+              disabled={!@publisher.recordings?}
+            />
+            <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 peer-disabled:opacity-50">
+            </div>
+          </label>
+          <label for="lex-record-stream" class="text-xs text-nowrap">Record stream</label>
+        </form>
       </div>
       <.modal id="settings-modal">
         <div class="flex items-stretch justify-between text-sm">
@@ -619,8 +627,6 @@ defmodule LiveExWebRTC.Publisher do
   @impl true
   def handle_event("record-stream-change", params, socket) do
     record? = params["value"] == "on"
-
-    dbg(record?)
 
     {:noreply,
      socket
