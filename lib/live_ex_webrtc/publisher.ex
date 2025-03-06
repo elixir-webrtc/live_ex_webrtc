@@ -294,11 +294,11 @@ defmodule LiveExWebRTC.Publisher do
               phx-update="ignore"
             >
               <label for="lex-audio-devices" class="absolute left-3 top-[5px] pointer-events-none">
-                <.icon name="hero-microphone" class="w-4 h-4" />
+                <.icon name="hero-microphone" class="w-4 h-4 dark:text-indigo-400" />
               </label>
               <select
                 id="lex-audio-devices"
-                class="pl-9 w-full rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-900 focus:outline-none focus:ring-0"
+                class="pl-9 w-full rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-900 focus:outline-none focus:ring-0 dark:bg-transparent dark:text-indigo-400 dark:border-indigo-400"
               >
               </select>
             </div>
@@ -308,22 +308,27 @@ defmodule LiveExWebRTC.Publisher do
               phx-update="ignore"
             >
               <label for="lex-video-devices" class="absolute left-3 top-[5px] pointer-events-none">
-                <.icon name="hero-video-camera" class="w-4 h-4" />
+                <.icon name="hero-video-camera" class="w-4 h-4 dark:text-indigo-400" />
               </label>
               <select
                 id="lex-video-devices"
-                class="pl-9 w-full rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-900 focus:outline-none focus:ring-0"
+                class="pl-9 w-full rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-900 focus:outline-none focus:ring-0 dark:bg-transparent dark:text-indigo-400 dark:border-indigo-400"
               >
               </select>
             </div>
           </div>
         </div>
-        <div class="flex-1 rounded-lg border border-indigo-200" id="lex-stats">
-          <div class="px-8 py-4 border-b border-indigo-200">
+        <div
+          class={
+            "flex-1 rounded-lg border border-indigo-200 dark:border-zinc-800 #{if @publisher.streaming?, do: "dark:text-neutral-200", else: "dark:text-neutral-600"}"
+          }
+          id="lex-stats"
+        >
+          <div class="px-8 py-4 border-b border-indigo-200 dark:border-zinc-800">
             <h1 class="font-medium">Statistics</h1>
           </div>
           <div class="p-4 text-sm">
-            <div class="divide-y divide-indigo-200 flex flex-col items-stretch *:p-4">
+            <div class="divide-y divide-indigo-200 dark:divide-zinc-800 flex flex-col items-stretch *:p-4">
               <div class="flex justify-between items-center">
                 <label for="lex-audio-bitrate">Audio bitrate (kbps):</label>
                 <p id="lex-audio-bitrate">0</p>
@@ -355,10 +360,10 @@ defmodule LiveExWebRTC.Publisher do
       <div class="flex flex-col gap-2">
         <div class="flex items-stretch gap-4">
           <button
-            class="border border-indigo-700 px-4 py-2 rounded-lg text-indigo-800 flex items-center justify-center gap-2"
+            class="border border-indigo-800 px-4 py-2 rounded-lg text-indigo-800 flex items-center justify-center gap-2 dark:border-indigo-400"
             phx-click={show_modal("settings-modal")}
           >
-            <.icon name="hero-cog-6-tooth" class="w-4 h-4" />
+            <.icon name="hero-cog-6-tooth" class="w-4 h-4 dark:text-indigo-400" />
           </button>
           <button
             :if={!@publisher.streaming?}
@@ -389,14 +394,16 @@ defmodule LiveExWebRTC.Publisher do
               <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 peer-disabled:opacity-50">
               </div>
             </label>
-            <label for="lex-record-stream" class="text-xs text-nowrap">Record stream</label>
+            <label for="lex-record-stream" class="text-xs text-nowrap dark:text-indigo-400">
+              Record stream
+            </label>
           </form>
         </div>
       </div>
       <.modal id="settings-modal">
         <div class="flex items-stretch justify-between text-sm">
           <div class="text-[#606060] flex flex-col gap-4">
-            <div class="font-bold text-[#0d0d0d]">Audio Settings</div>
+            <div class="font-bold text-[#0d0d0d] dark:text-stone-200">Audio Settings</div>
             <div class="flex flex-col gap-4">
               <div class="flex gap-2.5 items-center">
                 <label for="lex-echo-cancellation">Echo Cancellation</label>
@@ -413,7 +420,7 @@ defmodule LiveExWebRTC.Publisher do
             </div>
           </div>
           <div class="transition-all duration-700 text-[#606060] flex flex-col gap-2">
-            <div class="font-bold text-[#0d0d0d]">Video Settings</div>
+            <div class="font-bold text-[#0d0d0d] dark:text-stone-200">Video Settings</div>
             <div id="lex-video-static" phx-update="ignore" class="flex flex-col gap-2 items-end">
               <div class="flex items-center gap-2">
                 <label for="lex-width">Width</label>
@@ -421,7 +428,7 @@ defmodule LiveExWebRTC.Publisher do
                   type="text"
                   id="lex-width"
                   value="1280"
-                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
                 />
               </div>
               <div class="flex items-center gap-2">
@@ -430,7 +437,7 @@ defmodule LiveExWebRTC.Publisher do
                   type="text"
                   id="lex-height"
                   value="720"
-                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
                 />
               </div>
               <div class="flex items-center gap-2">
@@ -439,7 +446,7 @@ defmodule LiveExWebRTC.Publisher do
                   type="text"
                   id="lex-fps"
                   value="30"
-                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
                 />
               </div>
             </div>
@@ -454,17 +461,17 @@ defmodule LiveExWebRTC.Publisher do
         </button>
         <div class="flex text-sm gap-4">
           <div class="flex items-center gap-2">
-            <label for="lex-bitrate">Max Bitrate (kbps)</label>
+            <label for="lex-bitrate" class="dark:text-stone-200">Max Bitrate (kbps)</label>
             <input
               type="text"
               id="lex-bitrate"
               value="1500"
-              class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0"
+              class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
             />
           </div>
           <%= if @publisher.simulcast_supported? do %>
             <div class="flex gap-2.5 items-center text-sm">
-              <label for="lex-simulcast">Simulcast</label>
+              <label for="lex-simulcast" class="dark:text-stone-200">Simulcast</label>
               <input type="checkbox" id="lex-simulcast" class="rounded-full" />
             </div>
           <% else %>
