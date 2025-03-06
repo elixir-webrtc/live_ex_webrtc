@@ -25,12 +25,12 @@ export function createPublisherHook(iceServers = []) {
       view.audioBitrate = document.getElementById("lex-audio-bitrate");
       view.videoBitrate = document.getElementById("lex-video-bitrate");
       view.packetLoss = document.getElementById("lex-packet-loss");
-      view.status = document.getElementById("lex-status");
+      view.statusStarted = document.getElementById("lex-status-started");
+      view.statusStopped = document.getElementById("lex-status-stopped");
       view.time = document.getElementById("lex-time");
 
-      view.audioApplyButton = document.getElementById("lex-audio-apply-button");
-      view.videoApplyButton = document.getElementById("lex-video-apply-button");
       view.button = document.getElementById("lex-button");
+      view.applyButton = document.getElementById("lex-apply-button");
 
       view.simulcast = document.getElementById("lex-simulcast");
 
@@ -42,11 +42,7 @@ export function createPublisherHook(iceServers = []) {
         view.setupStream(view);
       };
 
-      view.audioApplyButton.onclick = function () {
-        view.setupStream(view);
-      };
-
-      view.videoApplyButton.onclick = function () {
+      view.applyButton.onclick = function () {
         view.setupStream(view);
       };
 
@@ -72,8 +68,7 @@ export function createPublisherHook(iceServers = []) {
         try {
           await view.setupStream(view);
           view.button.disabled = false;
-          view.audioApplyButton.disabled = false;
-          view.videoApplyButton.disabled = false;
+          view.applyButton.disabled = false;
         } catch (error) {
           console.error("Couldn't setup stream, reason:", error.stack);
         }
@@ -94,10 +89,9 @@ export function createPublisherHook(iceServers = []) {
       view.width.disabled = true;
       view.height.disabled = true;
       view.fps.disabled = true;
-      view.audioApplyButton.disabled = true;
-      view.videoApplyButton.disabled = true;
       view.bitrate.disabled = true;
       view.simulcast.disabled = true;
+      view.applyButton.disabled = true;
       // Button present only when Recorder is used
       if (view.recordStream) view.recordStream.disabled = true;
     },
@@ -111,10 +105,9 @@ export function createPublisherHook(iceServers = []) {
       view.width.disabled = false;
       view.height.disabled = false;
       view.fps.disabled = false;
-      view.audioApplyButton.disabled = false;
-      view.videoApplyButton.disabled = false;
       view.bitrate.disabled = false;
       view.simulcast.disabled = false;
+      view.applyButton.disabled = false;
       // See above
       if (view.recordStream) view.recordStream.disabled = false;
     },
@@ -194,9 +187,8 @@ export function createPublisherHook(iceServers = []) {
       view.pc.onconnectionstatechange = () => {
         if (view.pc.connectionState === "connected") {
           view.startTime = new Date();
-          view.status.classList.remove("bg-red-500");
-          // TODO use tailwind
-          view.status.style.backgroundColor = "rgb(34, 197, 94)";
+          view.statusStopped.style.display = "none";
+          view.statusStarted.style.display = "block";
 
           view.statsIntervalId = setInterval(async function () {
             if (!view.pc) {
@@ -397,7 +389,8 @@ export function createPublisherHook(iceServers = []) {
       view.videoBitrate.innerText = 0;
       view.packetLoss.innerText = 0;
       view.time.innerText = "00:00:00";
-      view.status.style.backgroundColor = "rgb(239, 68, 68)";
+      view.statusStopped.style.display = "block";
+      view.statusStarted.style.display = "none";
     },
 
     toHHMMSS(milliseconds) {
