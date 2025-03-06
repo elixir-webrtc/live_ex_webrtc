@@ -326,7 +326,7 @@ defmodule LiveExWebRTC.Publisher do
             <div class="divide-y divide-indigo-200 flex flex-col items-stretch *:p-4">
               <div class="flex justify-between items-center">
                 <label for="lex-audio-bitrate">Audio bitrate (kbps):</label>
-                <p id="lext-audio-bitrate">0</p>
+                <p id="lex-audio-bitrate">0</p>
               </div>
               <div class="flex justify-between items-center">
                 <label for="lex-video-bitrate">Video bitrate (kbps):</label>
@@ -342,7 +342,12 @@ defmodule LiveExWebRTC.Publisher do
               </div>
             </div>
             <div class="flex justify-center mb-8">
-              <.icon name="hero-signal" class="w-6 h-6 text-red-500" />
+              <div id="lex-status-stopped">
+                <.icon name="hero-signal-slash" class="w-6 h-6 text-red-500" />
+              </div>
+              <div id="lex-status-started" style="display:none">
+                <.icon name="hero-signal" class="w-6 h-6 text-green-500" />
+              </div>
             </div>
           </div>
         </div>
@@ -371,9 +376,6 @@ defmodule LiveExWebRTC.Publisher do
           >
             <.icon name="hero-stop" class="w-4 h-4" /> Stop streaming
           </button>
-          <div class="p-1 flex items-center hidden">
-            <div id="lex-status" class="w-3 h-3 rounded-full bg-red-500"></div>
-          </div>
           <form class="flex flex-col gap-1 items-center">
             <label class="relative inline-flex items-center cursor-pointer">
               <input

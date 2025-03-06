@@ -25,7 +25,8 @@ export function createPublisherHook(iceServers = []) {
       view.audioBitrate = document.getElementById("lex-audio-bitrate");
       view.videoBitrate = document.getElementById("lex-video-bitrate");
       view.packetLoss = document.getElementById("lex-packet-loss");
-      view.status = document.getElementById("lex-status");
+      view.statusStarted = document.getElementById("lex-status-started");
+      view.statusStopped = document.getElementById("lex-status-stopped");
       view.time = document.getElementById("lex-time");
 
       view.button = document.getElementById("lex-button");
@@ -186,9 +187,8 @@ export function createPublisherHook(iceServers = []) {
       view.pc.onconnectionstatechange = () => {
         if (view.pc.connectionState === "connected") {
           view.startTime = new Date();
-          view.status.classList.remove("bg-red-500");
-          // TODO use tailwind
-          view.status.style.backgroundColor = "rgb(34, 197, 94)";
+          view.statusStopped.style.display = "none";
+          view.statusStarted.style.display = "block";
 
           view.statsIntervalId = setInterval(async function () {
             if (!view.pc) {
@@ -389,7 +389,8 @@ export function createPublisherHook(iceServers = []) {
       view.videoBitrate.innerText = 0;
       view.packetLoss.innerText = 0;
       view.time.innerText = "00:00:00";
-      view.status.style.backgroundColor = "rgb(239, 68, 68)";
+      view.statusStopped.style.display = "block";
+      view.statusStarted.style.display = "none";
     },
 
     toHHMMSS(milliseconds) {
