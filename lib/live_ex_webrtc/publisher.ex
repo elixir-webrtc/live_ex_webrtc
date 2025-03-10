@@ -274,9 +274,13 @@ defmodule LiveExWebRTC.Publisher do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={@publisher.id} phx-hook="Publisher" class="h-full w-full flex flex-col justify-end gap-4">
+    <div
+      id={@publisher.id}
+      phx-hook="Publisher"
+      class="h-full w-full flex flex-col justify-end gap-4 dark:bg-stone-900"
+    >
       <div class="flex gap-4">
-        <div class="flex-1 flex flex-col gap-2">
+        <div class="flex-[3_1_0%] flex flex-col gap-2">
           <div class="w-full h-full">
             <video
               id="lex-preview-player"
@@ -287,18 +291,18 @@ defmodule LiveExWebRTC.Publisher do
             >
             </video>
           </div>
-          <div class="flex flex-col items-stretch gap-4">
+          <div class={"flex flex-col items-stretch gap-4 #{if @publisher.streaming?, do: "text-gray-400", else: "text-indigo-400"}"}>
             <div
               id="lex-audio-devices-wrapper"
               class="flex gap-2 items-center relative"
               phx-update="ignore"
             >
               <label for="lex-audio-devices" class="absolute left-3 top-[5px] pointer-events-none">
-                <.icon name="hero-microphone" class="w-4 h-4 dark:text-indigo-400" />
+                <span class="hero-microphone w-4 h-4" />
               </label>
               <select
                 id="lex-audio-devices"
-                class="pl-9 w-full rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-900 focus:outline-none focus:ring-0 dark:bg-transparent dark:text-indigo-400 dark:border-indigo-400"
+                class="pl-9 w-full rounded-lg text-sm border-indigo-200 text-indigo-800 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-200 focus:outline-none focus:ring-0 dark:bg-transparent dark:text-indigo-400 dark:border-indigo-400"
               >
               </select>
             </div>
@@ -308,11 +312,11 @@ defmodule LiveExWebRTC.Publisher do
               phx-update="ignore"
             >
               <label for="lex-video-devices" class="absolute left-3 top-[5px] pointer-events-none">
-                <.icon name="hero-video-camera" class="w-4 h-4 dark:text-indigo-400" />
+                <.icon name="hero-video-camera" class="w-4 h-4" />
               </label>
               <select
                 id="lex-video-devices"
-                class="pl-9 w-full rounded-lg text-sm border-indigo-200 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-900 focus:outline-none focus:ring-0 dark:bg-transparent dark:text-indigo-400 dark:border-indigo-400"
+                class="pl-9 w-full rounded-lg text-sm border-indigo-200 text-indigo-800 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-200 focus:outline-none focus:ring-0 dark:bg-transparent dark:text-indigo-400 dark:border-indigo-400"
               >
               </select>
             </div>
@@ -320,7 +324,7 @@ defmodule LiveExWebRTC.Publisher do
         </div>
         <div
           class={
-            "flex-1 rounded-lg border border-indigo-200 dark:border-zinc-800 #{if @publisher.streaming?, do: "dark:text-neutral-200", else: "dark:text-neutral-600"}"
+            "flex-[2_1_0%] rounded-lg border border-indigo-200 dark:border-zinc-800 #{if @publisher.streaming?, do: "text-black dark:text-neutral-200", else: "text-neutral-400 dark:text-neutral-600"}"
           }
           id="lex-stats"
         >
@@ -394,7 +398,7 @@ defmodule LiveExWebRTC.Publisher do
               <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 peer-disabled:opacity-50">
               </div>
             </label>
-            <label for="lex-record-stream" class="text-xs text-nowrap dark:text-indigo-400">
+            <label for="lex-record-stream" class="text-xs text-nowrap dark:text-neutral-200">
               Record stream
             </label>
           </form>
