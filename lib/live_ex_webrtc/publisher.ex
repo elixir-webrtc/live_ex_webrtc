@@ -302,7 +302,7 @@ defmodule LiveExWebRTC.Publisher do
               </label>
               <select
                 id="lex-audio-devices"
-                class="pl-9 w-full rounded-lg text-sm border-indigo-200 text-indigo-800 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-200 focus:outline-none focus:ring-0 dark:bg-transparent dark:text-indigo-400 dark:border-indigo-400"
+                class="pl-9 w-full rounded-lg text-sm border-indigo-200 text-indigo-800 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-200 focus:outline-none focus:ring-0 dark:bg-transparent dark:text-indigo-400 dark:border-indigo-400 dark:focus:border-indigo-400"
               >
               </select>
             </div>
@@ -316,7 +316,7 @@ defmodule LiveExWebRTC.Publisher do
               </label>
               <select
                 id="lex-video-devices"
-                class="pl-9 w-full rounded-lg text-sm border-indigo-200 text-indigo-800 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-200 focus:outline-none focus:ring-0 dark:bg-transparent dark:text-indigo-400 dark:border-indigo-400"
+                class="pl-9 w-full rounded-lg text-sm border-indigo-200 text-indigo-800 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-200 focus:outline-none focus:ring-0 dark:bg-transparent dark:text-indigo-400 dark:border-indigo-400 dark:focus:border-indigo-400"
               >
               </select>
             </div>
