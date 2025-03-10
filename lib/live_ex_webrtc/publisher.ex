@@ -191,9 +191,9 @@ defmodule LiveExWebRTC.Publisher do
   Created struct is saved in socket's assigns and has to be passed to `LiveExWebRTC.Publisher.live_render/1`.
 
   Options:
-  * `id` - publisher id. This is typically your user id (if there is users database).
+  * `id` [**required**] - publisher id. This is typically your user id (if there is users database).
   It is used to identify live view and generated HTML elements.
-  * `pubsub` - a pubsub that publisher live view will use for broadcasting audio and video packets received from a browser. See module doc for more info.
+  * `pubsub` [**required**]  - a pubsub that publisher live view will use for broadcasting audio and video packets received from a browser. See module doc for more info.
   * `recordings?` - whether to allow for recordings or not. Defaults to true.
     See module doc and `t:on_disconnected/0` for more info.
   * `recorder_opts` - a list of options that will be passed to the recorder. In particular, they can contain S3 config where recordings will be uploaded. See `t:ExWebRTC.Recorder.option/0` for more.
