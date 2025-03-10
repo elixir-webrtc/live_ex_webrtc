@@ -280,7 +280,7 @@ defmodule LiveExWebRTC.Publisher do
       class="h-full w-full flex flex-col justify-end gap-4 dark:bg-stone-900"
     >
       <div class="flex gap-4">
-        <div style="flex:3" class="flex flex-col gap-2">
+        <div class="flex-[3_1_0%] flex flex-col gap-2">
           <div class="w-full h-full">
             <video
               id="lex-preview-player"
@@ -291,7 +291,7 @@ defmodule LiveExWebRTC.Publisher do
             >
             </video>
           </div>
-          <div class={"flex-2 flex flex-col items-stretch gap-4 #{if @publisher.streaming?, do: "text-gray-400", else: "text-indigo-400"}"}>
+          <div class={"flex flex-col items-stretch gap-4 #{if @publisher.streaming?, do: "text-gray-400", else: "text-indigo-400"}"}>
             <div
               id="lex-audio-devices-wrapper"
               class="flex gap-2 items-center relative"
@@ -323,9 +323,8 @@ defmodule LiveExWebRTC.Publisher do
           </div>
         </div>
         <div
-          style="flex:2"
           class={
-            "rounded-lg border border-indigo-200 dark:border-zinc-800 #{if @publisher.streaming?, do: "text-black dark:text-neutral-200", else: "text-neutral-400 dark:text-neutral-600"}"
+            "flex-[2_1_0%] rounded-lg border border-indigo-200 dark:border-zinc-800 #{if @publisher.streaming?, do: "text-black dark:text-neutral-200", else: "text-neutral-400 dark:text-neutral-600"}"
           }
           id="lex-stats"
         >
