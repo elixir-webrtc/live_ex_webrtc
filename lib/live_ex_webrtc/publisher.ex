@@ -401,10 +401,10 @@ defmodule LiveExWebRTC.Publisher do
         </div>
       </div>
       <.modal id="settings-modal">
-        <div class="flex items-stretch justify-between text-sm">
+        <div class="flex flex-col gap-4 items-stretch justify-between text-sm">
           <div class="text-[#606060] flex flex-col gap-4">
             <div class="font-bold text-[#0d0d0d] dark:text-stone-200">Audio Settings</div>
-            <div class="flex flex-col gap-4">
+            <div class="flex gap-4 justify-between">
               <div class="flex gap-2.5 items-center">
                 <label for="lex-echo-cancellation">Echo Cancellation</label>
                 <input type="checkbox" id="lex-echo-cancellation" class="rounded-full" checked />
@@ -419,36 +419,73 @@ defmodule LiveExWebRTC.Publisher do
               </div>
             </div>
           </div>
-          <div class="transition-all duration-700 text-[#606060] flex flex-col gap-2">
+          <div class="transition-all duration-700 text-[#606060] flex flex-col gap-4 mt-4">
             <div class="font-bold text-[#0d0d0d] dark:text-stone-200">Video Settings</div>
-            <div id="lex-video-static" phx-update="ignore" class="flex flex-col gap-2 items-end">
-              <div class="flex items-center gap-2">
-                <label for="lex-width">Width</label>
-                <input
-                  type="text"
-                  id="lex-width"
-                  value="1280"
-                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
-                />
+            <div id="lex-video-static" phx-update="ignore" class="flex flex-col gap-4">
+              <div class="flex justify-between">
+                <div class="flex flex-col items-end gap-2">
+                  <div class="flex items-center gap-2">
+                    <label for="lex-width">Width</label>
+                    <input
+                      type="text"
+                      id="lex-width"
+                      value="1280"
+                      class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
+                    />
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <label for="lex-height">Height</label>
+                    <input
+                      type="text"
+                      id="lex-height"
+                      value="720"
+                      class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
+                    />
+                  </div>
+                </div>
+                <div class="flex flex-col items-end gap-2">
+                  <div class="flex items-center gap-2">
+                    <label for="lex-fps">FPS</label>
+                    <input
+                      type="text"
+                      id="lex-fps"
+                      value="30"
+                      class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
+                    />
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <label for="lex-fps">Max Bitrate (kbps)</label>
+                    <input
+                      type="text"
+                      id="lex-bitrate"
+                      value="1500"
+                      class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
+                    />
+                  </div>
+                </div>
               </div>
-              <div class="flex items-center gap-2">
-                <label for="lex-height">Height</label>
-                <input
-                  type="text"
-                  id="lex-height"
-                  value="720"
-                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
-                />
-              </div>
-              <div class="flex items-center gap-2">
-                <label for="lex-fps">FPS</label>
-                <input
-                  type="text"
-                  id="lex-fps"
-                  value="30"
-                  class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
-                />
-              </div>
+              <%= if @publisher.simulcast_supported? do %>
+                <div class="flex gap-2.5 items-center text-sm">
+                  <label for="lex-simulcast">Simulcast</label>
+                  <input type="checkbox" id="lex-simulcast" class="rounded-full" />
+                </div>
+              <% else %>
+                <div class="flex flex-col gap-2 text-sm">
+                  <div class="flex gap-2.5 items-center">
+                    <label for="lex-simulcast">Simulcast</label>
+                    <input
+                      type="checkbox"
+                      id="lex-simulcast"
+                      class="rounded-full bg-gray-300"
+                      disabled
+                    />
+                  </div>
+                  <p class="flex gap-2 text-sm leading-6 text-rose-600">
+                    <.icon name="hero-exclamation-circle-mini" class="mt-0.5 h-5 w-5 flex-none" />
+                    Simulcast requires server to be configured with H264 and/or VP8 codec
+                  </p>
+                </div>
+              <% end %>
             </div>
           </div>
         </div>
@@ -459,34 +496,6 @@ defmodule LiveExWebRTC.Publisher do
         >
           Apply
         </button>
-        <div class="flex text-sm gap-4">
-          <div class="flex items-center gap-2">
-            <label for="lex-bitrate" class="dark:text-stone-200">Max Bitrate (kbps)</label>
-            <input
-              type="text"
-              id="lex-bitrate"
-              value="1500"
-              class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
-            />
-          </div>
-          <%= if @publisher.simulcast_supported? do %>
-            <div class="flex gap-2.5 items-center text-sm">
-              <label for="lex-simulcast" class="dark:text-stone-200">Simulcast</label>
-              <input type="checkbox" id="lex-simulcast" class="rounded-full" />
-            </div>
-          <% else %>
-            <div class="flex flex-col gap-2 text-sm">
-              <div class="flex gap-2.5 items-center">
-                <label for="lex-simulcast">Simulcast</label>
-                <input type="checkbox" id="lex-simulcast" class="rounded-full bg-gray-300" disabled />
-              </div>
-              <p class="flex gap-2 text-sm leading-6 text-rose-600">
-                <.icon name="hero-exclamation-circle-mini" class="mt-0.5 h-5 w-5 flex-none" />
-                Simulcast requires server to be configured with H264 and/or VP8 codec
-              </p>
-            </div>
-          <% end %>
-        </div>
       </.modal>
     </div>
     """
