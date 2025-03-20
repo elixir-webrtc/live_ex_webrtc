@@ -214,7 +214,7 @@ defmodule LiveExWebRTC.Player do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class={@class}>
+    <div class={@player.class}>
       <div class="group inline-block relative w-full h-full">
         <video id={@player.id} phx-hook="Player" class="w-full h-full" controls autoplay muted>
         </video>
