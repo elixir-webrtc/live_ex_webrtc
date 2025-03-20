@@ -101,7 +101,8 @@ defmodule LiveExWebRTC.Player do
             target_layer: nil,
             video_layers: [],
             # codec that will be used for video sending
-            video_send_codec: nil
+            video_send_codec: nil,
+            class: nil
 
   alias ExWebRTC.{ICECandidate, MediaStreamTrack, PeerConnection, RTP.Munger, SessionDescription}
   alias ExRTCP.Packet.PayloadFeedback.PLI
@@ -168,7 +169,8 @@ defmodule LiveExWebRTC.Player do
         :ice_ip_filter,
         :ice_port_range,
         :audio_codecs,
-        :video_codecs
+        :video_codecs,
+        :class
       ])
 
     player = %Player{
@@ -182,6 +184,7 @@ defmodule LiveExWebRTC.Player do
       ice_port_range: Keyword.get(opts, :ice_port_range),
       audio_codecs: Keyword.get(opts, :audio_codecs),
       video_codecs: Keyword.get(opts, :video_codecs),
+      class: Keyword.get(opts, :class),
       pc_genserver_opts: Keyword.get(opts, :pc_genserver_opts, [])
     }
 
