@@ -80,6 +80,9 @@ defmodule LiveExWebRTC.Player do
 
   @type t() :: struct()
 
+  @check_lock_timeout_ms 3000
+  @max_lock_timeout 3000
+
   defstruct id: nil,
             publisher_id: nil,
             publisher_audio_track: nil,
@@ -101,7 +104,10 @@ defmodule LiveExWebRTC.Player do
             target_layer: nil,
             video_layers: [],
             # codec that will be used for video sending
-            video_send_codec: nil
+            video_send_codec: nil,
+            last_seen: nil,
+            locked: false,
+            lock_timer: nil
 
   alias ExWebRTC.{ICECandidate, MediaStreamTrack, PeerConnection, RTP.Munger, SessionDescription}
   alias ExRTCP.Packet.PayloadFeedback.PLI
@@ -317,15 +323,33 @@ defmodule LiveExWebRTC.Player do
         publisher_audio_track: ^publisher_audio_track,
         publisher_video_track: ^publisher_video_track
       } ->
-        # tracks are the same, do nothing
+        # tracks are the same, update last_seen and do nothing
+        player = %Player{player | last_seen: System.monotonic_time(:millisecond)}
+        socket = assign(socket, player: player)
+        {:noreply, socket}
+
+      %Player{locked: true} ->
+        # Different tracks but we are still receiving updates from old publisher. Ignore.
         {:noreply, socket}
 
       %Player{
         publisher_audio_track: old_publisher_audio_track,
         publisher_video_track: old_publisher_video_track,
-        video_layers: old_layers
+        video_layers: old_layers,
+        locked: false
       } ->
         if player.pc, do: PeerConnection.close(player.pc)
+
+        if player.lock_timer do
+          Process.cancel_timer(player.lock_timer)
+
+          # flush mailbox
+          receive do
+            :check_lock -> :ok
+          after
+            0 -> :ok
+          end
+        end
 
         video_layers = (publisher_video_track && publisher_video_track.rids) || ["h"]
 
@@ -344,7 +368,10 @@ defmodule LiveExWebRTC.Player do
             layer: "h",
             target_layer: "h",
             video_layers: video_layers,
-            munger: nil
+            munger: nil,
+            last_seen: System.monotonic_time(:millisecond),
+            locked: true,
+            lock_timer: Process.send_after(self(), :check_lock, @check_lock_timeout_ms)
         }
 
         socket = assign(socket, :player, player)
@@ -372,6 +399,25 @@ defmodule LiveExWebRTC.Player do
     end
   end
 
+  @impl true
+  def handle_info({:live_ex_webrtc, :bye, publisher_audio_track, publisher_video_track}, socket) do
+    %{player: player} = socket.assigns
+
+    case player do
+      %Player{
+        publisher_audio_track: ^publisher_audio_track,
+        publisher_video_track: ^publisher_video_track
+      } ->
+        player = %Player{player | locked: false}
+        socket = assign(socket, player: player)
+        {:noreply, socket}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_info({:live_ex_webrtc, :audio, packet}, socket) do
     %{player: player} = socket.assigns
 
@@ -384,6 +430,7 @@ defmodule LiveExWebRTC.Player do
     {:noreply, socket}
   end
 
+  @impl true
   def handle_info({:live_ex_webrtc, :video, rid, packet}, socket) do
     %{player: player} = socket.assigns
 
@@ -425,6 +472,27 @@ defmodule LiveExWebRTC.Player do
         Logger.warning("Unexpected packet. Ignoring.")
         {:noreply, socket}
     end
+  end
+
+  @impl true
+  def handle_info(:check_lock, %{assigns: %{locked: true}} = socket) do
+    now = System.monotonic_time(:millisecond)
+
+    if now - socket.assigns.last_seen > @max_lock_timeout do
+      # unlock i.e. allow for track update
+      socket = assign(socket, lock_timer: nil, locked: false)
+      {:noreply, socket}
+    else
+      timer = Process.send_after(self(), :check_lock, @check_lock_timeout_ms)
+      socket = assign(socket, :lock_timer, timer)
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info(:check_lock, socket) do
+    socket = assign(socket, :lock_timer, nil)
+    {:noreply, socket}
   end
 
   @impl true

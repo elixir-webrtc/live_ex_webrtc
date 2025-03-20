@@ -25,7 +25,7 @@ defmodule LiveExWebRTC.Publisher do
   `{:live_ex_webrtc, :audio, ExRTP.Packet.t()}`. Packets for non-simulcast video tracks are always
   sent with "h" identifier.
   * `streams:info:#{publisher.id}"` - for receiving information about publisher tracks and their layers.
-  The message is in form of: `{:live_ex_webrtc, :info, audio_track :: ExWebRTC.MediaStreamTrack.t(), video_track :: ExWebRTC.MediaStreamTrack.t()}`.
+  The message is in form of: `{:live_ex_webrtc, :info | :bye, audio_track :: ExWebRTC.MediaStreamTrack.t(), video_track :: ExWebRTC.MediaStreamTrack.t()}`.
   * `publishers:#{publisher_id}` for sending keyframe request.
   The message must be in form of `{:live_ex_webrtc, :keyframe_req, "l" | "m" | "h"}`
   E.g.
@@ -729,6 +729,17 @@ defmodule LiveExWebRTC.Publisher do
 
         {:noreply, socket}
     end
+  end
+
+  @impl true
+  def terminate(_reason, socket) do
+    %{publisher: publisher} = socket.assigns
+
+    PubSub.broadcast(
+      publisher.pubsub,
+      "streams:info:#{publisher.id}",
+      {:live_ex_webrtc, :bye, publisher.audio_track, publisher.video_track}
+    )
   end
 
   defp spawn_peer_connection(socket) do
