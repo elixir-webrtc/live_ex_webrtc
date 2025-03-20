@@ -184,7 +184,7 @@ defmodule LiveExWebRTC.Player do
       ice_port_range: Keyword.get(opts, :ice_port_range),
       audio_codecs: Keyword.get(opts, :audio_codecs),
       video_codecs: Keyword.get(opts, :video_codecs),
-      class: Keyword.get(opts, :class),
+      class: Keyword.get(opts, :class, "w-full h-full"),
       pc_genserver_opts: Keyword.get(opts, :pc_genserver_opts, [])
     }
 
@@ -214,9 +214,9 @@ defmodule LiveExWebRTC.Player do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class={@player.class}>
+    <div>
       <div class="group inline-block relative w-full h-full">
-        <video id={@player.id} phx-hook="Player" class="w-full h-full" controls autoplay muted>
+        <video id={@player.id} phx-hook="Player" class={@player.class} controls autoplay muted>
         </video>
 
         <div class={"z-40 absolute top-0 left-0 #{@display_settings} w-full h-full opacity-75 bg-black"}>
