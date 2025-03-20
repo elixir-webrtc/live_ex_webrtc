@@ -598,11 +598,13 @@ defmodule LiveExWebRTC.Publisher do
   def handle_info(:streams_info, socket) do
     %{publisher: publisher} = socket.assigns
 
-    PubSub.broadcast(
-      publisher.pubsub,
-      "streams:info:#{publisher.id}",
-      {:live_ex_webrtc, :info, publisher.audio_track, publisher.video_track}
-    )
+    if publisher.audio_track != nil or publisher.video_track != nil do
+      PubSub.broadcast(
+        publisher.pubsub,
+        "streams:info:#{publisher.id}",
+        {:live_ex_webrtc, :info, publisher.audio_track, publisher.video_track}
+      )
+    end
 
     Process.send_after(self(), :streams_info, 1_000)
 
