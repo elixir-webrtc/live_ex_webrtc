@@ -139,6 +139,7 @@ defmodule LiveExWebRTC.Publisher do
 
   defstruct id: nil,
             pc: nil,
+            pc_mref: nil,
             streaming?: false,
             simulcast_supported?: nil,
             # record checkbox status
@@ -160,7 +161,8 @@ defmodule LiveExWebRTC.Publisher do
             ice_port_range: nil,
             audio_codecs: nil,
             video_codecs: nil,
-            pc_genserver_opts: nil
+            pc_genserver_opts: nil,
+            info_timer: nil
 
   attr(:socket, Phoenix.LiveView.Socket, required: true, doc: "Parent live view socket")
 
@@ -507,7 +509,6 @@ defmodule LiveExWebRTC.Publisher do
       socket =
         receive do
           {^ref, %Publisher{id: ^pub_id} = publisher} ->
-            Process.send_after(self(), :streams_info, 1000)
             codecs = publisher.video_codecs || PeerConnection.Configuration.default_video_codecs()
             publisher = %Publisher{publisher | simulcast_supported?: simulcast_supported?(codecs)}
             assign(socket, publisher: publisher)
@@ -522,7 +523,11 @@ defmodule LiveExWebRTC.Publisher do
   end
 
   @impl true
-  def handle_info({:live_ex_webrtc, :keyframe_req, layer}, socket) do
+  def handle_info(
+        {:live_ex_webrtc, :keyframe_req, layer},
+        %{assigns: %{publisher: %{pc: pc}}} = socket
+      )
+      when pc != nil do
     %{publisher: publisher} = socket.assigns
 
     # Non-simulcast tracks are always sent with "h" identifier
@@ -535,9 +540,7 @@ defmodule LiveExWebRTC.Publisher do
         layer
       end
 
-    if pc = publisher.pc do
-      :ok = PeerConnection.send_pli(pc, publisher.video_track.id, layer)
-    end
+    :ok = PeerConnection.send_pli(pc, publisher.video_track.id, layer)
 
     {:noreply, socket}
   end
@@ -575,6 +578,10 @@ defmodule LiveExWebRTC.Publisher do
   def handle_info({:ex_webrtc, _pid, {:connection_state_change, :connected}}, socket) do
     %{publisher: pub} = socket.assigns
 
+    info_timer = Process.send_after(self(), :streams_info, 1000)
+    pub = %Publisher{pub | info_timer: info_timer}
+    socket = assign(socket, :publisher, pub)
+
     if pub.record? do
       [
         %{kind: :audio, receiver: %{track: audio_track}},
@@ -587,6 +594,11 @@ defmodule LiveExWebRTC.Publisher do
     if pub.on_connected, do: pub.on_connected.(pub.id)
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:ex_webrtc, _pid, {:connection_state_change, :failed}}, socket) do
+    {:noreply, bye(socket)}
   end
 
   @impl true
@@ -604,27 +616,27 @@ defmodule LiveExWebRTC.Publisher do
         "streams:info:#{publisher.id}",
         {:live_ex_webrtc, :info, publisher.audio_track, publisher.video_track}
       )
+
+      info_timer = Process.send_after(self(), :streams_info, 1_000)
+      publisher = %Publisher{publisher | info_timer: info_timer}
+      socket = assign(socket, :publisher, publisher)
+      {:noreply, socket}
+    else
+      {:noreply, socket}
     end
-
-    Process.send_after(self(), :streams_info, 1_000)
-
-    {:noreply, socket}
   end
 
+  @impl true
   def handle_info(
         {:DOWN, _ref, :process, pc, _reason},
-        %{assigns: %{publisher: %{pc: pc} = pub}} = socket
+        %{assigns: %{publisher: %{pc: pc}}} = socket
       ) do
-    if pub.record? do
-      recorder_result =
-        Recorder.end_tracks(pub.recorder, [pub.audio_track.id, pub.video_track.id])
+    {:noreply, bye(socket)}
+  end
 
-      if pub.on_recording_finished, do: pub.on_recording_finished.(pub.id, recorder_result)
-    end
-
-    if pub.on_disconnected, do: pub.on_disconnected.(pub.id)
-
-    {:noreply, assign(socket, publisher: %Publisher{pub | streaming?: false})}
+  @impl true
+  def handle_info(_msg, socket) do
+    {:noreply, socket}
   end
 
   @impl true
@@ -649,19 +661,13 @@ defmodule LiveExWebRTC.Publisher do
 
   @impl true
   def handle_event("stop-streaming", _, socket) do
-    {:noreply,
-     socket
-     |> assign(publisher: %Publisher{socket.assigns.publisher | streaming?: false})
-     |> push_event("stop-streaming", %{})}
+    {:noreply, bye(socket)}
   end
 
   @impl true
   def handle_event("record-stream-change", params, socket) do
     record? = params["value"] == "on"
-
-    {:noreply,
-     socket
-     |> assign(publisher: %Publisher{socket.assigns.publisher | record?: record?})}
+    {:noreply, assign(socket, publisher: %Publisher{socket.assigns.publisher | record?: record?})}
   end
 
   @impl true
@@ -669,7 +675,7 @@ defmodule LiveExWebRTC.Publisher do
     %{publisher: publisher} = socket.assigns
     offer = SessionDescription.from_json(unsigned_params)
     {:ok, pc} = spawn_peer_connection(socket)
-    Process.monitor(pc)
+    pc_mref = Process.monitor(pc)
 
     :ok = PeerConnection.set_remote_description(pc, offer)
 
@@ -689,6 +695,7 @@ defmodule LiveExWebRTC.Publisher do
     new_publisher = %Publisher{
       publisher
       | pc: pc,
+        pc_mref: pc_mref,
         audio_track: audio_track,
         video_track: video_track
     }
@@ -734,15 +741,7 @@ defmodule LiveExWebRTC.Publisher do
   end
 
   @impl true
-  def terminate(_reason, socket) do
-    %{publisher: publisher} = socket.assigns
-
-    PubSub.broadcast(
-      publisher.pubsub,
-      "streams:info:#{publisher.id}",
-      {:live_ex_webrtc, :bye, publisher.audio_track, publisher.video_track}
-    )
-  end
+  def terminate(_reason, socket), do: bye(socket)
 
   defp spawn_peer_connection(socket) do
     %{publisher: publisher} = socket.assigns
@@ -782,5 +781,59 @@ defmodule LiveExWebRTC.Publisher do
       _ ->
         false
     end)
+  end
+
+  defp bye(socket) do
+    %{publisher: publisher} = socket.assigns
+
+    if publisher.audio_track != nil or publisher.video_track != nil do
+      PubSub.broadcast(
+        publisher.pubsub,
+        "streams:info:#{publisher.id}",
+        {:live_ex_webrtc, :bye, publisher.audio_track, publisher.video_track}
+      )
+    end
+
+    if publisher.info_timer != nil, do: Process.cancel_timer(publisher.info_timer)
+
+    receive do
+      :streams_info -> :ok
+    after
+      0 -> :ok
+    end
+
+    try do
+      Process.demonitor(publisher.pc_mref)
+      PeerConnection.close(publisher.pc)
+    catch
+      _, _ -> :ok
+    end
+
+    if publisher.record? and publisher.audio_track != nil and publisher.video_track != nil do
+      recorder_result =
+        Recorder.end_tracks(publisher.recorder, [
+          publisher.audio_track.id,
+          publisher.video_track.id
+        ])
+
+      if publisher.on_recording_finished,
+        do: publisher.on_recording_finished.(publisher.id, recorder_result)
+    end
+
+    if publisher.on_disconnected, do: publisher.on_disconnected.(publisher.id)
+
+    publisher = %Publisher{
+      publisher
+      | info_timer: nil,
+        audio_track: nil,
+        video_track: nil,
+        streaming?: false,
+        pc: nil,
+        pc_mref: nil
+    }
+
+    socket
+    |> assign(:publisher, publisher)
+    |> push_event("stop-streaming", %{})
   end
 end
