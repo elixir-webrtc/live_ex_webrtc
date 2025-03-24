@@ -141,9 +141,10 @@ defmodule LiveExWebRTC.Player do
   Created struct is saved in socket's assigns and has to be passed to `LiveExWebRTC.Player.live_render/1`.
 
   Options:
-  * `id` - player id. This is typically your user id (if there is users database).
+  * `id` [**required**] - player id. This is typically your user id (if there is users database).
   It is used to identify live view and generated HTML video player.
-  * `publisher_id` - publisher id that this player is going to subscribe to.
+  * `publisher_id` [**required**] - publisher id that this player is going to subscribe to.
+  * `pubsub` [**required**] - a pubsub that player live view will use for receiving audio and video packets. See module doc for more info.
   * `on_connected` - callback called when the underlying peer connection changes its state to the `:connected`. See `t:on_connected/0`.
   * `on_packet` - callback called for each audio and video RTP packet. Can be used to modify the packet before sending via WebRTC to the other side. See `t:on_packet/0`.
   * `ice_servers` - a list of `t:ExWebRTC.PeerConnection.Configuration.ice_server/0`,
