@@ -81,7 +81,7 @@ defmodule LiveExWebRTC.Player do
   @type t() :: struct()
 
   @check_lock_timeout_ms 3000
-  @max_lock_timeout 3000
+  @max_lock_timeout_ms 3000
 
   defstruct id: nil,
             publisher_id: nil,
@@ -475,23 +475,26 @@ defmodule LiveExWebRTC.Player do
   end
 
   @impl true
-  def handle_info(:check_lock, %{assigns: %{locked: true}} = socket) do
+  def handle_info(:check_lock, %{assigns: %{player: %Player{locked: true} = player}} = socket) do
     now = System.monotonic_time(:millisecond)
 
-    if now - socket.assigns.last_seen > @max_lock_timeout do
+    if now - socket.assigns.player.last_seen > @max_lock_timeout_ms do
       # unlock i.e. allow for track update
-      socket = assign(socket, lock_timer: nil, locked: false)
+      player = %Player{player | lock_timer: nil, locked: false}
+      socket = assign(socket, :player, player)
       {:noreply, socket}
     else
       timer = Process.send_after(self(), :check_lock, @check_lock_timeout_ms)
-      socket = assign(socket, :lock_timer, timer)
+      player = %Player{player | lock_timer: timer}
+      socket = assign(socket, :player, player)
       {:noreply, socket}
     end
   end
 
   @impl true
   def handle_info(:check_lock, socket) do
-    socket = assign(socket, :lock_timer, nil)
+    player = %Player{socket.assigns.player | lock_timer: nil}
+    socket = assign(socket, :player, player)
     {:noreply, socket}
   end
 
