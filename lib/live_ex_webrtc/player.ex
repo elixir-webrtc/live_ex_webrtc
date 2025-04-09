@@ -118,8 +118,12 @@ defmodule LiveExWebRTC.Player do
     """
   )
 
-  attr(:class, :string, default: nil, doc: "CSS/Tailwind classes for styling HTMLVideoElement")
-  attr(:video_class, :string, default: nil, doc: "")
+  attr(:class, :string, default: nil, doc: "CSS/Tailwind classes for styling container")
+
+  attr(:video_class, :string,
+    default: nil,
+    doc: "CSS/Tailwind classes for styling HTMLVideoElement"
+  )
 
   @doc """
   Helper function for rendering Player live view.
