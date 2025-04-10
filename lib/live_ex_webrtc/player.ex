@@ -230,27 +230,43 @@ defmodule LiveExWebRTC.Player do
         >
         </video>
 
-        <div class={"z-40 absolute top-0 left-0 #{@display_settings} w-full h-full opacity-75 bg-black"}>
-          <div class="p-4  flex flex-row">
-            <div class="flex flex-col h-full gap-4 border-r-4 py-4 px-4 pr-8 font-bold text-white">
-              <span class="cursor-pointer">Video Quality </span>
-              <span class="cursor-pointer" phx-click="toggle-settings">Exit</span>
-            </div>
-            <div class="py-4 px-8 pr-4 ">
-              <select id="lexp-video-quality" class="z-40 ">
+        <div class={[
+          "w-full h-full absolute top-0 left-0 z-40 flex items-center justify-center bg-black/30",
+          @display_settings
+        ]}>
+          <div
+            class="p-8 pr-12 bg-stone-900/90 h-fit rounded-lg relative"
+            phx-click-away="toggle-settings"
+          >
+            <div class="flex gap-4 items-center">
+              <label class="cursor-pointer text-white text-nowrap text-sm" for="lexp-video-quality">
+                Video Quality
+              </label>
+              <select
+                id="lexp-video-quality"
+                class="rounded-lg text-sm disabled:text-gray-400 disabled:border-gray-400 focus:outline-none focus:ring-0 bg-transparent text-indigo-400 border-indigo-400 focus:border-indigo-400 min-w-[128px]"
+              >
                 <%= for {id, layer} <- @player.video_layers do %>
                   <option :if={id == @player.layer} value={id} selected>{layer}</option>
                   <option :if={id != @player.layer} value={id}>{layer}</option>
                 <% end %>
               </select>
             </div>
+            <button
+              class="top-2 right-2 absolute p-2 hover:bg-stone-800 rounded-lg"
+              phx-click="toggle-settings"
+            >
+              <span class="hero-x-mark block w-4 h-4 text-white" />
+            </button>
           </div>
         </div>
 
-        <span
+        <button
           phx-click="toggle-settings"
-          class="hero-cog-8-tooth text-white w-16 h-16 absolute top-[50%] left-[50%] translate-y-[-75%] translate-x-[-50%] transform duration-300 ease-in-out group-hover:visible invisible transition-opacity opacity-0 group-hover:opacity-100"
-        />
+          class="absolute top-6 left-6 duration-300 ease-in-out group-hover:visible invisible transition-opacity opacity-0 group-hover:opacity-100 rounded-lg hover:bg-stone-800 p-2"
+        >
+          <span class="hero-cog-8-tooth text-white w-6 h-6 block" />
+        </button>
       </div>
     </div>
     """
