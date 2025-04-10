@@ -235,12 +235,17 @@ defmodule LiveExWebRTC.Player do
           @display_settings
         ]}>
           <div
-            class="p-8 pr-12 bg-stone-900 h-fit rounded-lg relative"
+            class="p-8 pr-12 bg-stone-900/90 h-fit rounded-lg relative"
             phx-click-away="toggle-settings"
           >
             <div class="flex gap-4 items-center">
-              <label class="cursor-pointer text-white" for="lexp-video-quality">Video Quality</label>
-              <select id="lexp-video-quality" class="min-w-[128px]">
+              <label class="cursor-pointer text-white text-nowrap text-sm" for="lexp-video-quality">
+                Video Quality
+              </label>
+              <select
+                id="lexp-video-quality"
+                class="rounded-lg text-sm disabled:text-gray-400 disabled:border-gray-400 focus:outline-none focus:ring-0 bg-transparent text-indigo-400 border-indigo-400 focus:border-indigo-400 min-w-[128px]"
+              >
                 <%= for {id, layer} <- @player.video_layers do %>
                   <option :if={id == @player.layer} value={id} selected>{layer}</option>
                   <option :if={id != @player.layer} value={id}>{layer}</option>
