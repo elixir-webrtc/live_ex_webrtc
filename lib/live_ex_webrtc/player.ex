@@ -118,7 +118,12 @@ defmodule LiveExWebRTC.Player do
     """
   )
 
-  attr(:class, :string, default: nil, doc: "CSS/Tailwind classes for styling HTMLVideoElement")
+  attr(:class, :string, default: nil, doc: "CSS/Tailwind classes for styling container")
+
+  attr(:video_class, :string,
+    default: nil,
+    doc: "CSS/Tailwind classes for styling HTMLVideoElement"
+  )
 
   @doc """
   Helper function for rendering Player live view.
@@ -129,7 +134,8 @@ defmodule LiveExWebRTC.Player do
       id: "#{@player.id}-lv",
       session: %{
         "publisher_id" => @player.publisher_id,
-        "class" => @class
+        "class" => @class,
+        "video_class" => @video_class
       }
     )}
     """
@@ -214,7 +220,14 @@ defmodule LiveExWebRTC.Player do
     ~H"""
     <div class={@class}>
       <div class="group inline-block relative w-full h-full">
-        <video id={@player.id} phx-hook="Player" class="w-full h-full" controls autoplay muted>
+        <video
+          id={@player.id}
+          phx-hook="Player"
+          class={["w-full h-full", @video_class]}
+          controls
+          autoplay
+          muted
+        >
         </video>
 
         <div class={"z-40 absolute top-0 left-0 #{@display_settings} w-full h-full opacity-75 bg-black"}>
@@ -244,8 +257,12 @@ defmodule LiveExWebRTC.Player do
   end
 
   @impl true
-  def mount(_params, %{"publisher_id" => pub_id, "class" => class}, socket) do
-    socket = assign(socket, class: class, player: nil)
+  def mount(
+        _params,
+        %{"publisher_id" => pub_id, "class" => class, "video_class" => video_class},
+        socket
+      ) do
+    socket = assign(socket, class: class, player: nil, video_class: video_class)
 
     if connected?(socket) do
       ref = make_ref()
