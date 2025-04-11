@@ -127,6 +127,13 @@ defmodule LiveExWebRTC.Publisher do
   @type on_recording_finished :: (publisher_id :: String.t(), Recorder.end_tracks_ok_result() ->
                                     any())
 
+  @typedoc """
+  Called when recorder sends a message to the Publisher.
+
+  For exact meaning of the second argument, refer to `t:ExWebRTC.Recorder.message/0`.
+  """
+  @type on_recorder_message :: (publisher_id :: String.t(), Recorder.message() -> any())
+
   @type on_packet ::
           (publisher_id :: String.t(),
            packet_type :: :audio | :video,
@@ -154,6 +161,7 @@ defmodule LiveExWebRTC.Publisher do
             on_connected: nil,
             on_disconnected: nil,
             on_recording_finished: nil,
+            on_recorder_message: nil,
             pubsub: nil,
             ice_servers: nil,
             ice_ip_filter: nil,
@@ -221,6 +229,7 @@ defmodule LiveExWebRTC.Publisher do
         :on_connected,
         :on_disconnected,
         :on_recording_finished,
+        :on_recorder_message,
         :ice_servers,
         :ice_ip_filter,
         :ice_port_range,
@@ -238,6 +247,7 @@ defmodule LiveExWebRTC.Publisher do
       on_connected: Keyword.get(opts, :on_connected),
       on_disconnected: Keyword.get(opts, :on_disconnected),
       on_recording_finished: Keyword.get(opts, :on_recording_finished),
+      on_recorder_message: Keyword.get(opts, :on_recorder_message),
       ice_servers: Keyword.get(opts, :ice_servers, [%{urls: "stun:stun.l.google.com:19302"}]),
       ice_ip_filter: Keyword.get(opts, :ice_ip_filter),
       ice_port_range: Keyword.get(opts, :ice_port_range),
@@ -609,6 +619,7 @@ defmodule LiveExWebRTC.Publisher do
     {:noreply, socket}
   end
 
+  @impl true
   def handle_info(
         {:DOWN, _ref, :process, pc, _reason},
         %{assigns: %{publisher: %{pc: pc} = pub}} = socket
@@ -623,6 +634,16 @@ defmodule LiveExWebRTC.Publisher do
     if pub.on_disconnected, do: pub.on_disconnected.(pub.id)
 
     {:noreply, assign(socket, publisher: %Publisher{pub | streaming?: false})}
+  end
+
+  @impl true
+  def handle_info(
+        {:ex_webrtc_recorder, rec, _} = msg,
+        %{assigns: %{publisher: %{recorder: rec} = pub}} = socket
+      ) do
+    if pub.on_recorder_message, do: pub.on_recorder_message.(pub.id, msg)
+
+    {:noreply, socket}
   end
 
   @impl true
