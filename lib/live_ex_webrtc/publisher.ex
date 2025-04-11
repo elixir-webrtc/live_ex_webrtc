@@ -75,6 +75,11 @@ defmodule LiveExWebRTC.Publisher do
   ]
   ```
 
+  You can also use the shorthands for default H264 and VP8 codec parameters:
+  ```elixir
+  video_codecs = [:h264, :vp8]
+  ```
+
   ## Examples
 
   ```elixir
@@ -759,6 +764,9 @@ defmodule LiveExWebRTC.Publisher do
 
   defp simulcast_supported?(codecs) do
     Enum.all?(codecs, fn
+      default_codec when default_codec in [:h264, :vp8] ->
+        true
+
       %RTPCodecParameters{mime_type: "video/VP8"} ->
         true
 
