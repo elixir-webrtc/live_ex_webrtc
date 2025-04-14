@@ -334,6 +334,14 @@ defmodule LiveExWebRTC.Player do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_info(
+        {:ex_webrtc, pc, {:connection_state_change, :failed}},
+        %{assigns: %{player: %{pc: pc}}} 
+      ) do
+    exit(:pc_failed)
+  end
+
   def handle_info({:ex_webrtc, _pc, {:rtcp, packets}}, socket) do
     # Browser, we are sending to, requested a keyframe.
     # Forward this request to the publisher.
