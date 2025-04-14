@@ -650,17 +650,17 @@ defmodule LiveExWebRTC.Publisher do
   end
 
   @impl true
-  def handle_info(_msg, socket) do
-    {:noreply, socket}
-  end
-
-  @impl true
   def handle_info(
         {:ex_webrtc_recorder, rec, _} = msg,
         %{assigns: %{publisher: %{recorder: rec} = pub}} = socket
       ) do
     if pub.on_recorder_message, do: pub.on_recorder_message.(pub.id, msg)
 
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info(_msg, socket) do
     {:noreply, socket}
   end
 
