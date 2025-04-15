@@ -268,7 +268,7 @@ defmodule LiveExWebRTC.Player do
 
         <button
           phx-click="toggle-settings"
-          class="absolute top-6 left-6 duration-300 ease-in-out group-hover:visible invisible transition-opacity opacity-0 group-hover:opacity-100 rounded-lg hover:bg-stone-800 p-2"
+          class="absolute top-6 left-6 duration-300 ease-in-out group-hover:visible invisible transition-opacity opacity-0 group-hover:opacity-100 rounded-lg bg-stone-700 hover:bg-stone-800 p-2"
         >
           <span class="hero-cog-8-tooth text-white w-6 h-6 block" />
         </button>
