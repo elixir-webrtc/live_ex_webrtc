@@ -231,7 +231,6 @@ defmodule LiveExWebRTC.Player do
           phx-hook="Player"
           class={["w-full h-full", @video_class]}
           controls
-          autoplay
           muted
         >
         </video>
@@ -337,7 +336,7 @@ defmodule LiveExWebRTC.Player do
   @impl true
   def handle_info(
         {:ex_webrtc, pc, {:connection_state_change, :failed}},
-        %{assigns: %{player: %{pc: pc}}} 
+        %{assigns: %{player: %{pc: pc}}}
       ) do
     exit(:pc_failed)
   end

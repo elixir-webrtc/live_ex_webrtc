@@ -24,6 +24,7 @@ export function createPlayerHook(iceServers = []) {
     async connect(view) {
       view.el.srcObject = undefined;
       view.pc = new RTCPeerConnection({ iceServers: iceServers });
+      view.el.play();
 
       view.pc.onicecandidate = (ev) => {
         view.pushEventTo(view.el, "ice", JSON.stringify(ev.candidate));
@@ -41,6 +42,6 @@ export function createPlayerHook(iceServers = []) {
       await view.pc.setLocalDescription(offer);
 
       view.pushEventTo(view.el, "offer", offer);
-    }
+    },
   };
 }
