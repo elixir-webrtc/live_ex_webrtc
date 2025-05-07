@@ -308,7 +308,7 @@ defmodule LiveExWebRTC.Publisher do
             >
             </video>
           </div>
-          <div class={"flex flex-col items-stretch gap-4 #{if @publisher.streaming?, do: "text-gray-400", else: "text-indigo-400"}"}>
+          <div class={"flex flex-col items-stretch gap-4 #{if @publisher.streaming?, do: "text-gray-400", else: "text-primary dark:text-dark-primary"}"}>
             <div
               id="lex-audio-devices-wrapper"
               class="flex gap-2 items-center relative"
@@ -319,7 +319,7 @@ defmodule LiveExWebRTC.Publisher do
               </label>
               <select
                 id="lex-audio-devices"
-                class="pl-9 w-full rounded-lg text-sm border-indigo-200 text-indigo-800 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-200 focus:outline-none focus:ring-0 dark:bg-transparent dark:text-indigo-400 dark:border-indigo-400 dark:focus:border-indigo-400"
+                class="pl-9 w-full rounded-lg text-sm border-primary-light text-primary disabled:text-gray-400 disabled:border-gray-400 focus:border-primary-light focus:outline-none focus:ring-0 dark:bg-transparent dark:text-dark-primary-light dark:border-dark-primary-light dark:focus:border-dark-primary-light"
               >
               </select>
             </div>
@@ -333,7 +333,7 @@ defmodule LiveExWebRTC.Publisher do
               </label>
               <select
                 id="lex-video-devices"
-                class="pl-9 w-full rounded-lg text-sm border-indigo-200 text-indigo-800 disabled:text-gray-400 disabled:border-gray-400 focus:border-indigo-200 focus:outline-none focus:ring-0 dark:bg-transparent dark:text-indigo-400 dark:border-indigo-400 dark:focus:border-indigo-400"
+                class="pl-9 w-full rounded-lg text-sm border-primary-light text-primary disabled:text-gray-400 disabled:border-gray-400 focus:border-primary-light focus:outline-none focus:ring-0 dark:bg-transparent dark:text-dark-primary-light dark:border-dark-primary-light dark:focus:border-dark-primary-light"
               >
               </select>
             </div>
@@ -341,15 +341,15 @@ defmodule LiveExWebRTC.Publisher do
         </div>
         <div
           class={
-            "flex-[2_1_0%] rounded-lg border border-indigo-200 dark:border-zinc-800 #{if @publisher.streaming?, do: "text-black dark:text-neutral-200", else: "text-neutral-400 dark:text-neutral-600"}"
+            "flex-[2_1_0%] rounded-lg border border-primary-light dark:border-zinc-800 #{if @publisher.streaming?, do: "text-black dark:text-neutral-200", else: "text-neutral-400 dark:text-neutral-600"}"
           }
           id="lex-stats"
         >
-          <div class="px-8 py-4 border-b border-indigo-200 dark:border-zinc-800">
+          <div class="px-8 py-4 border-b border-primary-light dark:border-zinc-800">
             <h1 class="font-medium">Statistics</h1>
           </div>
           <div class="p-4 text-sm">
-            <div class="divide-y divide-indigo-200 dark:divide-zinc-800 flex flex-col items-stretch *:p-4">
+            <div class="divide-y divide-primary-light dark:divide-zinc-800 flex flex-col items-stretch *:p-4">
               <div class="flex justify-between items-center">
                 <label for="lex-audio-bitrate">Audio bitrate (kbps):</label>
                 <p id="lex-audio-bitrate">0</p>
@@ -381,15 +381,15 @@ defmodule LiveExWebRTC.Publisher do
       <div class="flex flex-col gap-2">
         <div class="flex items-stretch gap-4">
           <button
-            class="border border-indigo-800 px-4 py-2 rounded-lg text-indigo-800 flex items-center justify-center gap-2 dark:border-indigo-400"
+            class="border border-primary-light px-4 py-2 rounded-lg text-primary-light flex items-center justify-center gap-2 dark:border-dark-primary-lighter"
             phx-click={show_modal("settings-modal")}
           >
-            <.icon name="hero-cog-6-tooth" class="w-4 h-4 dark:text-indigo-400" />
+            <.icon name="hero-cog-6-tooth" class="w-4 h-4 dark:text-dark-primary-light" />
           </button>
           <button
             :if={!@publisher.streaming?}
             id="lex-button"
-            class="bg-indigo-800 hover:bg-indigo-900 flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg"
+            class="bg-primary-light hover:bg-primary flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg dark:bg-dark-primary dark:hover:bg-dark-primary-light"
             phx-click="start-streaming"
           >
             <.icon name="hero-play" class="w-4 h-4" /> Start streaming
@@ -412,7 +412,7 @@ defmodule LiveExWebRTC.Publisher do
                 phx-change="record-stream-change"
                 disabled={!@publisher.recordings?}
               />
-              <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 peer-disabled:opacity-50">
+              <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-light rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-light peer-disabled:opacity-50">
               </div>
             </label>
             <label for="lex-record-stream" class="text-xs text-nowrap dark:text-neutral-200">
@@ -475,7 +475,7 @@ defmodule LiveExWebRTC.Publisher do
         </div>
         <button
           id="lex-apply-button"
-          class="w-full text-sm my-6 rounded-lg px-10 py-2.5 bg-indigo-800 disabled:opacity-50 hover:bg-indigo-900 text-white font-bold"
+          class="w-full text-sm my-6 rounded-lg px-10 py-2.5 bg-primary disabled:opacity-50 hover:bg-indigo-900 text-white font-bold"
           disabled
         >
           Apply
