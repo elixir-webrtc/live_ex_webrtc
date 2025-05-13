@@ -428,15 +428,15 @@ defmodule LiveExWebRTC.Publisher do
             <div class="flex flex-col gap-4">
               <div class="flex gap-2.5 items-center">
                 <label for="lex-echo-cancellation">Echo Cancellation</label>
-                <input type="checkbox" id="lex-echo-cancellation" class="rounded-full" checked />
+                <input type="checkbox" id="lex-echo-cancellation" class="rounded-full" />
               </div>
               <div class="flex gap-2.5 items-center">
                 <label for="lex-auto-gain-control">Auto Gain Control</label>
-                <input type="checkbox" id="lex-auto-gain-control" class="rounded-full" checked />
+                <input type="checkbox" id="lex-auto-gain-control" class="rounded-full" />
               </div>
               <div class="flex gap-2.5 items-center">
                 <label for="lex-noise-suppression">Noise Suppression</label>
-                <input type="checkbox" id="lex-noise-suppression" class="rounded-full" checked />
+                <input type="checkbox" id="lex-noise-suppression" class="rounded-full" />
               </div>
             </div>
           </div>
@@ -466,7 +466,7 @@ defmodule LiveExWebRTC.Publisher do
                 <input
                   type="text"
                   id="lex-fps"
-                  value="30"
+                  value="25"
                   class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
                 />
               </div>
@@ -486,14 +486,14 @@ defmodule LiveExWebRTC.Publisher do
             <input
               type="text"
               id="lex-bitrate"
-              value="1500"
+              value="2300"
               class="rounded-lg disabled:text-gray-400 disabled:border-gray-400 focus:border-brand focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:border-none dark:text-indigo-400"
             />
           </div>
           <%= if @publisher.simulcast_supported? do %>
             <div class="flex gap-2.5 items-center text-sm">
               <label for="lex-simulcast" class="dark:text-stone-200">Simulcast</label>
-              <input type="checkbox" id="lex-simulcast" class="rounded-full" />
+              <input type="checkbox" id="lex-simulcast" class="rounded-full" checked />
             </div>
           <% else %>
             <div class="flex flex-col gap-2 text-sm">
