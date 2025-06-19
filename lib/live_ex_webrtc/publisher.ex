@@ -52,7 +52,7 @@ defmodule LiveExWebRTC.Publisher do
 
   ## Simulcast
 
-  Simulcast requires video codecs to be H264 (packetization mode 1) and/or VP8. E.g.
+  Simulcast requires video codecs to be H264 and/or VP8. E.g.
 
   ```elixir
   video_codecs = [
@@ -803,8 +803,7 @@ defmodule LiveExWebRTC.Publisher do
         true
 
       %RTPCodecParameters{mime_type: "video/H264", sdp_fmtp_line: fmtp} when fmtp != nil ->
-        fmtp.level_asymmetry_allowed == true and fmtp.packetization_mode == 1 and
-          fmtp.profile_level_id == 0x42E01F
+        fmtp.level_asymmetry_allowed == true and fmtp.profile_level_id == 0x42E01F
 
       _ ->
         false
