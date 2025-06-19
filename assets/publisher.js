@@ -49,6 +49,7 @@ export function createPublisherHook(iceServers = []) {
       // handle remote events
       view.handleEvent(`answer-${view.el.id}`, async (answer) => {
         if (view.pc) {
+          console.log(answer);
           await view.pc.setRemoteDescription(answer);
         } else {
           console.warn("Received SDP cnswer but there is no PC. Ignoring.");

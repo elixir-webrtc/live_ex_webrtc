@@ -11,6 +11,7 @@ export function createPlayerHook(iceServers = []) {
       const eventName = "answer" + "-" + view.el.id;
       view.handleEvent(eventName, async (answer) => {
         if (view.pc) {
+          console.log(answer);
           await view.pc.setRemoteDescription(answer);
         }
       });
@@ -32,6 +33,9 @@ export function createPlayerHook(iceServers = []) {
 
       view.pc.ontrack = (ev) => {
         if (!view.el.srcObject) {
+          console.log(ev);
+          window.view = view;
+          window.ev = ev;
           view.el.srcObject = ev.streams[0];
         }
       };
