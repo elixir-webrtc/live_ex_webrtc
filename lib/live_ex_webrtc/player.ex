@@ -35,7 +35,7 @@ defmodule LiveExWebRTC.Player do
 
   ## Simulcast
 
-  Simulcast requires video codecs to be H264 (packetization mode 1) and/or VP8.
+  Simulcast requires video codecs to be H264 and/or VP8.
   See `LiveExWebRTC.Publisher` module doc for more.
 
   ## Examples
